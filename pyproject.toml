@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0",
+            "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "COS397_Black_ChemControl"
+version = "0.0.2"
+authors = [{ name="Eric Jestel", email="eric.jestel@maine.edu" },
+           { name="Author2", email="author2@maine.edu" },
+]
+description = "Our project for the capstone course. Undertaken by Team Jack of All Spades"
+readme = "README.md"
+requires-python = ">=3.9.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache 2.0",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Bug Tracker" = "https://github.com/pypa/python_package_exercise/issues"
