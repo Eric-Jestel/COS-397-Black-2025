@@ -21,7 +21,7 @@ import numpy as np
 import psutil
 import time
 
-from basic_sort_COS397_Black_HW5.int_sort import bubble, quick, insertion
+from components.int_sort import bubble, quick, insertion
 
 
 @pytest.fixture
@@ -84,7 +84,8 @@ def test_quick_time(int_lists):
     Function that tests the amount of time to execute quick() function
 
     Args:
-        int_lists: int_lists is a list of integers to be used when calling the quick() function
+        int_lists: int_lists is a list of integers to be used when calling the
+        quick() function
 
     Returns:
         Function returns time to execute quick() function in seconds.
