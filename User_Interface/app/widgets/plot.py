@@ -2,11 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 
 class PlaceholderPlot(ttk.Frame):
-    """
-    Prototype placeholder for:
-    - 'Blank spectra' 
-    - 'Sample data' 
-    """
+    
     def __init__(self, parent, title: str):
         super().__init__(parent)
         ttk.Label(self, text=title, font=("TkDefaultFont", 11, "bold")).pack(anchor="w")

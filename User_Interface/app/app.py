@@ -19,6 +19,26 @@ class PrototypeApp:
         except tk.TclError:
             pass
 
+        # Page background 
+        style.configure("Proto.TFrame", background="#EDEBE6")
+
+        # Section background
+        style.configure(
+            "Panel.TFrame",
+            background="#DEDBD5",
+            relief="solid",
+            borderwidth=1
+        )
+
+        # White inset 
+        style.configure(
+            "Inset.TFrame",
+            background="white",
+            relief="solid",
+            borderwidth=1
+        )
+
+
         self.state = UIState()
 
         container = ttk.Frame(self.root, padding=12)

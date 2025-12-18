@@ -1,97 +1,152 @@
+import tkinter as tk
 from tkinter import ttk
-from app.config import PANEL_PAD
-from app.widgets.labeled_value import LabeledValue
-from app.widgets.plot import PlaceholderPlot
+
 from app.dialogs.file_selector import ask_open_csv
 from app.views.advanced_options import AdvancedOptionsDialog
+
+BG = "#EDEBE6"  
 
 class SetupPageView(ttk.Frame):
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
 
-        # Layout: left controls + right plot/status
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=2)
-        self.rowconfigure(0, weight=1)
+        # Column widths are "locked" via minsize to keep the mockup look.
+        self.grid_rowconfigure(0, weight=0, minsize=170)   # top info row
+        self.grid_rowconfigure(1, weight=1)                # main content row grows
 
-        left = ttk.Frame(self, padding=PANEL_PAD)
-        right = ttk.Frame(self, padding=PANEL_PAD)
-        left.grid(row=0, column=0, sticky="nsew")
-        right.grid(row=0, column=1, sticky="nsew")
+        self.grid_columnconfigure(0, weight=0, minsize=360)  # left control column
+        self.grid_columnconfigure(1, weight=1, minsize=420)  # center column
+        self.grid_columnconfigure(2, weight=1, minsize=420)  # right column
 
-        # Header / branding (prototype)
-        ttk.Label(left, text="Chemistry 1", font=("TkDefaultFont", 16, "bold")).pack(anchor="w")
-        ttk.Label(left, text="Instrumentation", font=("TkDefaultFont", 12)).pack(anchor="w", pady=(0, 12))
+        # unify background for prototype
+        self.configure(style="Proto.TFrame")
 
-        # Buttons (from page 1)
-        btns = ttk.LabelFrame(left, text="Blank")
-        btns.pack(fill="x", pady=(0, 12))
+        # Panels
+        title_card = ttk.Frame(self, style="ProtoCard.TFrame", padding=14)
+        instr_top  = ttk.Frame(self, style="ProtoCard.TFrame", padding=12)
+        server_top = ttk.Frame(self, style="ProtoCard.TFrame", padding=12)
 
-        ttk.Button(btns, text="Capture Blank", command=self.on_capture_blank).pack(fill="x", pady=4)
-        ttk.Button(btns, text="Load Blank from File", command=self.on_load_blank).pack(fill="x", pady=4)
-        ttk.Button(btns, text="Save Blank to File", command=self.on_save_blank).pack(fill="x", pady=4)
-        ttk.Button(btns, text="Reset Blank", command=self.on_reset_blank).pack(fill="x", pady=4)
+        left_controls = ttk.Frame(self, style="ProtoCard.TFrame", padding=14)
+        plot_panel    = ttk.Frame(self, style="ProtoCard.TFrame", padding=12)
 
-        # Debugging mode + continue (from page 1)
-        bottom = ttk.Frame(left)
-        bottom.pack(fill="x", pady=(8, 0))
+        title_card.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        instr_top.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        server_top.grid(row=0, column=2, sticky="nsew", padx=10, pady=10)
 
-        self.debug_var = ttk.Checkbutton(
-            bottom,
-            text="Debugging mode",
-            command=self.on_toggle_debug
+        left_controls.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        plot_panel.grid(row=1, column=1, columnspan=2, sticky="nsew", padx=10, pady=(0, 10))
+
+        # Title card 
+        ttk.Label(title_card, text="Chemistry", font=("TkDefaultFont", 22, "bold")).pack(anchor="center")
+        ttk.Label(title_card, text="Instrumentation", font=("TkDefaultFont", 22, "bold")).pack(anchor="center")
+        ttk.Separator(title_card).pack(fill="x", pady=10)
+
+        ttk.Label(title_card, text="Developed by Jack of all Spades").pack()
+        ttk.Label(title_card, text="Licensed under …, 2025").pack()
+        ttk.Label(title_card, text="").pack()
+
+        #  Top blocks
+        self._build_top_block(
+            parent=instr_top,
+            title="Instrument information",
+            info_text="Instrument information",
+            status_title="Instrument\nconnection status",
+            reconnect_cmd=self.on_reconnect_instrument,
         )
-        self.debug_var.pack(anchor="w", pady=(0, 10))
 
-        ttk.Button(
-            bottom,
-            text="Continue to main session",
-            command=lambda: self.app.show("session")
-        ).pack(fill="x")
+        self._build_top_block(
+            parent=server_top,
+            title="ICN Server\nInformation",
+            info_text="Server Diagnostic\nInformation",
+            status_title="Instrument\nconnection status",
+            reconnect_cmd=self.on_reconnect_server,
+        )
 
-        ttk.Button(
-            bottom,
-            text="Advanced options",
-            command=self.open_advanced_options
-        ).pack(fill="x", pady=(8, 0))
+        # Left controls 
+        ttk.Label(left_controls, text="Blank", font=("TkDefaultFont", 12, "bold")).grid(
+            row=0, column=0, sticky="w"
+        )
 
-        # Right side: plot + info panels
-        right.columnconfigure(0, weight=1)
+        # button stack frame
+        btn_frame = ttk.Frame(left_controls, style="Proto.TFrame")
+        btn_frame.grid(row=1, column=0, sticky="nsew", pady=(8, 10))
+        left_controls.grid_rowconfigure(1, weight=1)
+        left_controls.grid_columnconfigure(0, weight=1)
 
-        self.plot = PlaceholderPlot(right, title="Blank spectra")
-        self.plot.pack(fill="both", expand=True)
+        # Buttons in left columns nav
+        self.button(btn_frame, "Capture Blank", self.on_capture_blank).pack(fill="x", pady=10)
+        self.button(btn_frame, "Load Blank from File", self.on_load_blank).pack(fill="x", pady=10)
+        self.button(btn_frame, "Reset Blank", self.on_reset_blank).pack(fill="x", pady=10)
+        self.button(btn_frame, "Save Blank to File", self.on_save_blank).pack(fill="x", pady=10)
 
-        info_row = ttk.Frame(right)
-        info_row.pack(fill="x", pady=(10, 0))
-        for i in range(3):
-            info_row.columnconfigure(i, weight=1)
+        self.button(left_controls, "Continue to main session",
+                            lambda: self.app.show("session")).grid(row=2, column=0, sticky="ew", pady=(8, 8))
 
-        # These mirror “Instrument information”, “ICN Server Information”, and connection status blocks (page 1)
-        instrument_panel = ttk.LabelFrame(info_row, text="Instrument information")
-        server_panel = ttk.LabelFrame(info_row, text="ICN Server Information")
-        status_panel = ttk.LabelFrame(info_row, text="Connection")
+        self.button(left_controls, "Debugging mode",
+                            self.on_toggle_debug).grid(row=3, column=0, sticky="ew", pady=(8, 0))
 
-        instrument_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
-        server_panel.grid(row=0, column=1, sticky="nsew", padx=(0, 8))
-        status_panel.grid(row=0, column=2, sticky="nsew")
+        # Plot panel 
+        plot_panel.grid_rowconfigure(0, weight=1)
+        plot_panel.grid_columnconfigure(0, weight=1)
 
-        self.instrument_id = LabeledValue(instrument_panel, "Instrument", "Spectrometer A")
-        self.instrument_id.pack(anchor="w", padx=8, pady=8)
+        plot_canvas = tk.Canvas(plot_panel, background="white", highlightthickness=1, highlightbackground="#A0A0A0")
+        plot_canvas.grid(row=0, column=0, sticky="nsew")
 
-        self.server_status = LabeledValue(server_panel, "Server Diagnostic", self.app.state.server_status)
-        self.server_status.pack(anchor="w", padx=8, pady=8)
+        # Center placeholder text 
+        plot_canvas.create_text(
+            0, 0,
+            anchor="center",
+            text="Blank spectra\n\nIncluded:\nX-axis title\nY-axis title\nX-axis ticks + labels\nY-axis ticks + labels",
+            font=("TkDefaultFont", 16),
+            fill="#333"
+        )
 
-        self.conn_status = LabeledValue(status_panel, "Instrument connection status",
-                                        "Connected" if self.app.state.instrument_connected else "Disconnected")
-        self.conn_status.pack(anchor="w", padx=8, pady=8)
-        ttk.Button(status_panel, text="Reconnect", command=self.on_reconnect).pack(fill="x", padx=8, pady=(0, 8))
+        # Re-center when resized
+        def _center_text(event):
+            plot_canvas.coords(1, event.width // 2, event.height // 2)
+        plot_canvas.bind("<Configure>", _center_text)
 
-    # ---- Stub handlers (prototype) ----
+    def _build_top_block(self, parent, title, info_text, status_title, reconnect_cmd):
+        # Layout inside top block: left info area, right status/reconnect column
+        parent.grid_columnconfigure(0, weight=1)
+        parent.grid_columnconfigure(1, weight=0, minsize=200)
+        parent.grid_rowconfigure(1, weight=1)
+
+        ttk.Label(parent, text=title, font=("TkDefaultFont", 14, "bold")).grid(
+            row=0, column=0, sticky="w", padx=(2, 8), pady=(0, 6)
+        )
+
+        info_box = ttk.Frame(parent, style="ProtoInset.TFrame", padding=12)
+        info_box.grid(row=1, column=0, sticky="nsew", padx=(0, 10))
+
+        ttk.Label(info_box, text=info_text, font=("TkDefaultFont", 16)).place(relx=0.5, rely=0.5, anchor="center")
+
+        status_col = ttk.Frame(parent, style="Proto.TFrame")
+        status_col.grid(row=0, column=1, rowspan=2, sticky="nsew")
+
+        status_label = ttk.Frame(status_col, style="ProtoInset.TFrame", padding=8)
+        status_label.pack(fill="x")
+
+        ttk.Label(status_label, text=status_title, justify="center").pack()
+
+        self.button(status_col, "Reconnect", reconnect_cmd).pack(fill="x", pady=(20, 0))
+
+    def button(self, parent, text, command):
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            fg="black",
+            relief="flat",
+            padx=12,
+            pady=14,
+            font=("TkDefaultFont", 14)
+        )
+
+    # Stub handlers
     def on_capture_blank(self):
-        # Prototype: flip a bit of state, update UI text
         self.app.state.blank_file_path = "captured_blank.csv (not saved)"
-        # In a later iteration, you could render a simple polyline on the Canvas.
 
     def on_load_blank(self):
         path = ask_open_csv(self)
@@ -99,7 +154,6 @@ class SetupPageView(ttk.Frame):
             self.app.state.blank_file_path = path
 
     def on_save_blank(self):
-        # Prototype: no file I/O yet
         pass
 
     def on_reset_blank(self):
@@ -108,9 +162,11 @@ class SetupPageView(ttk.Frame):
     def on_toggle_debug(self):
         self.app.state.debug_mode = not self.app.state.debug_mode
 
-    def on_reconnect(self):
+    def on_reconnect_instrument(self):
         self.app.state.instrument_connected = True
-        self.conn_status.set("Connected")
+
+    def on_reconnect_server(self):
+        self.app.state.server_status = "OK"
 
     def open_advanced_options(self):
         AdvancedOptionsDialog(self, app=self.app)
