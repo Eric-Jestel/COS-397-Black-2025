@@ -1,5 +1,6 @@
 from tkinter import ttk
 
+
 class LabeledValue(ttk.Frame):
     def __init__(self, parent, label: str, value: str = "-"):
         super().__init__(parent)

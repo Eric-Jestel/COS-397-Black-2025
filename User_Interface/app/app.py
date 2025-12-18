@@ -7,6 +7,7 @@ from app.state import UIState
 from app.views.setup_page import SetupPageView
 from app.views.instrument_page import InstrumentPageView
 
+
 class PrototypeApp:
     def __init__(self):
         self.root = tk.Tk()
@@ -19,25 +20,18 @@ class PrototypeApp:
         except tk.TclError:
             pass
 
-        # Page background 
+        # Page background
         style.configure("Proto.TFrame", background="#EDEBE6")
 
         # Section background
         style.configure(
-            "Panel.TFrame",
-            background="#DEDBD5",
-            relief="solid",
-            borderwidth=1
+            "Panel.TFrame", background="#DEDBD5", relief="solid", borderwidth=1
         )
 
-        # White inset 
+        # White inset
         style.configure(
-            "Inset.TFrame",
-            background="white",
-            relief="solid",
-            borderwidth=1
+            "Inset.TFrame", background="white", relief="solid", borderwidth=1
         )
-
 
         self.state = UIState()
 
@@ -53,7 +47,7 @@ class PrototypeApp:
             (SetupPageView, "setup"),
             (InstrumentPageView, "session"),
         ]:
-            frame =FrameCls(parent=container, app=self)
+            frame = FrameCls(parent=container, app=self)
             frame.grid(row=0, column=0, sticky="nsew")
             self.frames[name] = frame
 
@@ -61,6 +55,6 @@ class PrototypeApp:
 
     def show(self, name: str):
         self.frames[name].tkraise()
-    
+
     def run(self):
         self.root.mainloop()
