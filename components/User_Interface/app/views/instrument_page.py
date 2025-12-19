@@ -4,6 +4,7 @@ from app.views.advanced_options import AdvancedOptionsDialog
 
 BTN_BG = "#F7F7F7"
 
+
 def _center_dialog(self, dialog):
     dialog.update_idletasks()
     root = self.winfo_toplevel()
@@ -92,7 +93,9 @@ class InstrumentPageView(ttk.Frame):
         self.buttons_row.grid_columnconfigure((0, 1), weight=1)
 
         self.login_btn = self._boxed_button(self.buttons_row, "Login", self.on_login)
-        self.reset_btn = self._boxed_button(self.buttons_row, "Reset", self.on_reset_login)
+        self.reset_btn = self._boxed_button(
+            self.buttons_row, "Reset", self.on_reset_login
+        )
 
         self.login_btn.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         self.reset_btn.grid(row=0, column=1, sticky="ew")
@@ -107,7 +110,9 @@ class InstrumentPageView(ttk.Frame):
             steps_inner, "Step 1: Login", "Login with ICN account username"
         ).pack(fill="x", pady=6)
         self._boxed_button_small(
-            steps_inner, "Step 2: Capture sample", "Insert Cuvette. Close Machine. Click \"Take Sample\""
+            steps_inner,
+            "Step 2: Capture sample",
+            'Insert Cuvette. Close Machine. Click "Take Sample"',
         ).pack(fill="x", pady=6)
         self._boxed_button_small(
             steps_inner, "Step 3: Reset", "Click the reset button when finished"
@@ -163,7 +168,6 @@ class InstrumentPageView(ttk.Frame):
 
         canvas.bind("<Configure>", _center_text)
 
-
     # Helpers
     def _section_title(self, parent, text):
         ttk.Label(parent, text=text, font=("TkDefaultFont", 14, "bold")).pack(
@@ -182,7 +186,6 @@ class InstrumentPageView(ttk.Frame):
             pady=14,
             font=("TkDefaultFont", 14),
         )
-
 
     def _boxed_button_small(self, parent, text, command):
         # Same styling as SetupPage, but slightly tighter for the step list.

@@ -46,7 +46,7 @@ class PrototypeApp:
         self.frames = {}
         for FrameCls, name in [
             (SetupPageView, "setup"),
-            (InstrumentPageView, "session")
+            (InstrumentPageView, "session"),
         ]:
             frame = FrameCls(parent=container, app=self)
             frame.grid(row=0, column=0, sticky="nsew")

@@ -3,12 +3,12 @@
 import InstrumentController
 import ServerController
 
+
 class SystemController:
 
     instCon = InstrumentController()
     servCon = ServerController()
     samples = []
-    
 
     def setup(self):
         """
@@ -18,7 +18,6 @@ class SystemController:
             Boolean: True if successful
         """
         return self.instCon.setup() and self.servCon.connect()
-    
 
     def take_blank(self, filename):
         """
@@ -32,19 +31,17 @@ class SystemController:
         """
         return self.instCon.take_blank(filename)
 
-
     def set_blank(self, filename):
         """
         Sets the blank that the instrument will compare samples against
 
         Args:
             filename (String): the name of the blank file
-            
+
         Returns:
             Boolean: True if successful
         """
         return self.instCon.set_blank(filename)
-
 
     def take_sample(self):
         """
@@ -58,7 +55,6 @@ class SystemController:
         newSample = self.instCon.take_sample()
         self.sample.append(newSample)
         return self.servCon.send_data(newSample)
-        
 
     def login_user(self, username):
         """
@@ -71,7 +67,6 @@ class SystemController:
             Boolean: True if successful
         """
         return self.servCon.login(username)
-    
 
     def logout_user(self):
         """
@@ -82,14 +77,12 @@ class SystemController:
         """
         self.samples = []
         return self.servCon.logout()
-    
 
     def display_data(self):
         """
         Displays all the samples the user has currently taken
         """
         return
-    
 
     def shutdown(self):
         """
@@ -101,4 +94,3 @@ class SystemController:
         self.logout_user()
         self.instCon.shutdown()
         return self.servCon.send_all_data()
-    

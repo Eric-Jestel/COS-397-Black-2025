@@ -2,13 +2,13 @@
 
 import Sample
 
+
 class ServerController:
     """
     Communicates with the Inter Chem Net Server
     """
 
     user = None
-
 
     def connect(self):
         """
@@ -18,7 +18,6 @@ class ServerController:
             Boolean: True if successful
         """
         return True
-
 
     def login(self, username):
         """
@@ -32,7 +31,6 @@ class ServerController:
         """
         self.user = username
         return True
-    
 
     def logout(self):
         """
@@ -43,8 +41,7 @@ class ServerController:
         """
         self.user = None
         return True
-    
-    
+
     def is_logged_in(self):
         """
         Checks if a user is logged in
@@ -54,7 +51,6 @@ class ServerController:
         """
         return self.user != None
 
-
     def send_all_data(self):
         """
         Attempts to send all unsent data to ICN
@@ -63,7 +59,6 @@ class ServerController:
             Boolean: True if successful
         """
         return True
-    
 
     def send_data(self, sample):
         """
@@ -76,4 +71,3 @@ class ServerController:
             Boolean: True if it successful send all unsent data
         """
         return self.send_all_data()
-    
