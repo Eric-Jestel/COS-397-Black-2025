@@ -2,6 +2,7 @@
 
 import Sample
 
+
 class InstrumentController:
     """
     Communicates with the instrument
@@ -12,7 +13,6 @@ class InstrumentController:
         Sets up the instrument
         """
         return
-
 
     def take_blank(self, filename):
         """
@@ -25,7 +25,6 @@ class InstrumentController:
             Boolean: True if successful
         """
         return True
-    
 
     def set_blank(self, filename):
         """
@@ -39,7 +38,6 @@ class InstrumentController:
         """
         return True
 
-
     def take_sample(self):
         """
         Sends a command to the instrument to take a sample and converts the sample to a Sample object
@@ -47,9 +45,8 @@ class InstrumentController:
         Returns:
             Sample: the sample that the instrument collected
         """
-        return Sample("test", "uv-vis", [2.0,2.5,3.0,2.5], 0.1)
-    
-    
+        return Sample("test", "uv-vis", [2.0, 2.5, 3.0, 2.5], 0.1)
+
     def shutdown(self):
         """
         Shuts the instrument down
@@ -58,4 +55,3 @@ class InstrumentController:
             Boolean: True if successful
         """
         return True
-    

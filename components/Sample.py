@@ -1,5 +1,6 @@
 # This is the sample class file
 
+
 class Sample:
     """
     Represents a sample generated from the instrument
@@ -23,7 +24,6 @@ class Sample:
         self.name = name
         self.data = data
         self.interval = interval
-
 
     def __str__(self):
         """

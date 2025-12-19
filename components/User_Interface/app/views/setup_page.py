@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
 from app.dialogs.file_selector import ask_open_csv
 from app.views.advanced_options import AdvancedOptionsDialog
@@ -187,12 +187,10 @@ class SetupPageView(ttk.Frame):
 
     def on_toggle_debug(self):
         self.app.state.debug_mode = not self.app.state.debug_mode
+        messagebox.showinfo("Debug", "Activated Debug Mode")
 
     def on_reconnect_instrument(self):
         self.app.state.instrument_connected = True
 
     def on_reconnect_server(self):
         self.app.state.server_status = "OK"
-
-    def open_advanced_options(self):
-        AdvancedOptionsDialog(self, app=self.app)

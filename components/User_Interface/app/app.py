@@ -6,6 +6,7 @@ from app.config import APP_TITLE, WINDOW_MIN_SIZE
 from app.state import UIState
 from app.views.setup_page import SetupPageView
 from app.views.instrument_page import InstrumentPageView
+from app.views.advanced_options import AdvancedOptionsDialog
 
 
 class PrototypeApp:
