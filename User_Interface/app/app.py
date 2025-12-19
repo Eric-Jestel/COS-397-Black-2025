@@ -6,6 +6,7 @@ from app.config import APP_TITLE, WINDOW_MIN_SIZE
 from app.state import UIState
 from app.views.setup_page import SetupPageView
 from app.views.instrument_page import InstrumentPageView
+from app.views.advanced_options import AdvancedOptionsDialog
 
 
 class PrototypeApp:
@@ -45,7 +46,7 @@ class PrototypeApp:
         self.frames = {}
         for FrameCls, name in [
             (SetupPageView, "setup"),
-            (InstrumentPageView, "session"),
+            (InstrumentPageView, "session")
         ]:
             frame = FrameCls(parent=container, app=self)
             frame.grid(row=0, column=0, sticky="nsew")

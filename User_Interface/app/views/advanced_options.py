@@ -2,7 +2,13 @@ import tkinter as tk
 from tkinter import ttk
 
 
+
 class AdvancedOptionsDialog(tk.Toplevel):
+    
+    def _go_back_to_setup(self):
+        self.destroy()              # close the popup
+        self.app.show("setup")      # navigate to setup
+    
     def __init__(self, parent, app):
         super().__init__(parent)
         self.app = app
@@ -30,6 +36,6 @@ class AdvancedOptionsDialog(tk.Toplevel):
             fill="x", pady=4
         )
 
-        ttk.Button(root, text="Back to instrument page", command=self.destroy).pack(
+        ttk.Button(root, text="Back to Setup page", command=lambda: self._go_back_to_setup()).pack(
             fill="x", pady=(12, 0)
         )
