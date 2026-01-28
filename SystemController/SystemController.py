@@ -9,6 +9,8 @@ def clicked(function):
         case "runLabMachine":
             parameters = ""
             runLabMachine(parameters)
+            #should return the JSON file
+            #need to send the JSON file to 
         #stops the checks and shuts down the program
         case "stopProgram":
             parameters = ""
