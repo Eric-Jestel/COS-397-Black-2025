@@ -1,6 +1,6 @@
 # This is the server controller
 
-import Sample
+#import Sample
 
 class ServerController:
     """
@@ -8,7 +8,6 @@ class ServerController:
     """
 
     user = None
-
 
     def connect(self):
         """
@@ -18,7 +17,6 @@ class ServerController:
             Boolean: True if successful
         """
         return True
-
 
     def login(self, username):
         """
@@ -33,7 +31,6 @@ class ServerController:
         self.user = username
         return True
     
-
     def logout(self):
         """
         Logs out a user
@@ -44,7 +41,6 @@ class ServerController:
         self.user = None
         return True
     
-    
     def is_logged_in(self):
         """
         Checks if a user is logged in
@@ -52,8 +48,7 @@ class ServerController:
         Returns:
             Boolean: True if a user is logged in
         """
-        return self.user != None
-
+        return self.user is not None
 
     def send_all_data(self):
         """
@@ -64,7 +59,6 @@ class ServerController:
         """
         return True
     
-
     def send_data(self, sample):
         """
         Converts a sample to a file and sends all the unsent data to ICN
@@ -76,4 +70,3 @@ class ServerController:
             Boolean: True if it successful send all unsent data
         """
         return self.send_all_data()
-    
