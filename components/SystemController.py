@@ -37,7 +37,7 @@ class SystemController:
 
         Args:
             filename (String): the name of the blank file
-            
+
         Returns:
             Boolean: True if successful
         """
