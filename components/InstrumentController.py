@@ -3,6 +3,7 @@
 
 import Sample
 
+
 class InstrumentController:
     """
     Communicates with the instrument
@@ -46,7 +47,7 @@ class InstrumentController:
             Sample: the sample that the instrument collected
         """
         return Sample("test", "uv-vis", [2.0, 2.5, 3.0, 2.5], 0.1)
-    
+
     def shutdown(self):
         """
         Shuts the instrument down

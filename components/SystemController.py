@@ -55,7 +55,7 @@ class SystemController:
         newSample = self.instCon.take_sample()
         self.sample.append(newSample)
         return self.servCon.send_data(newSample)
-        
+
     def login_user(self, username):
         """
         Logs in a user with the given username
@@ -77,13 +77,13 @@ class SystemController:
         """
         self.samples = []
         return self.servCon.logout()
-    
+
     def display_data(self):
         """
         Displays all the samples the user has currently taken
         """
         return
-    
+
     def shutdown(self):
         """
         Shuts down the instrument and sends all unsent data to ICN
