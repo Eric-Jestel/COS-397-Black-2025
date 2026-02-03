@@ -1,6 +1,6 @@
 # This is the system controller
-#import User_Interface, System Controller, and Server Controller
-import SystemController
+#import User_Interface, Instrument Controller and Server Controller
+#from User_Interface import main.py ?????
 import InstrumentController
 import ServerController
 #Need necessary functions such as run test
