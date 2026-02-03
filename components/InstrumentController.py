@@ -13,7 +13,7 @@ class InstrumentController:
         """
         Sets up the instrument
         """
-        return
+        return True
 
     def take_blank(self, filename):
         """
