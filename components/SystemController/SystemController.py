@@ -1,21 +1,19 @@
 # This is the system controller
 #import User_Interface, Instrument Controller and Server Controller
 #from User_Interface import main.py ?????
-import InstrumentController
-import ServerController
+from InstrumentController import InstrumentController
+from ServerController import ServerController
 #Need necessary functions such as run test
-def clicked(function): #IN PROGRESS
+def clicked(function, ServerController, InstrumentController): #IN PROGRESS
     match function:
         case "startUp":
             #Loop to make sure startup is finished before moving on
             startUpComplete = False
             while startUpComplete == False:
                 #verify machine connection
-                machineConnection = InstrumentController.setup()
-                if machineConnection == True:
+                if InstrumentController.setup():
                     #verify server connection
-                    serverConnection = ServerController.connect()
-                    if serverConnection == True:
+                    if ServerController.connect():
                         print("Connected")
                         startUpComplete = True
                     else:
@@ -26,8 +24,10 @@ def clicked(function): #IN PROGRESS
             return False
         case "signIn":
             #verify connection to ICN
-            #send information to server controller to sign in
-            print("signing in")
+            if ServerController.connect():
+                #send information to server controller to sign in
+                ServerController.login("poop")
+                print(ServerController.user + ": signing in")
             return False
         case "runLabMachine": 
             #runs the lab machine
@@ -73,15 +73,25 @@ def clicked(function): #IN PROGRESS
     #parameters
     #return True
 
+#error code stuffs
+'''
+1) Machine is not connecting
+2) Server is not connecting
+3) 
+
+'''
+
 #main function
 def main():
     endProgram = False
     function = ""
+    ServCont = ServerController()
+    InstCont = InstrumentController()
     endProgram = clicked(function)
     while endProgram != True:
         #checks for what is pressed
         function = input("Please enter:\n runLabMachine\n or stopProgram\n Or type nothing\n   Answer: ")
-        endProgram = clicked(function)
+        endProgram = clicked(function, ServCont, InstCont)
         
     return 
 main()

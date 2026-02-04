@@ -1,7 +1,7 @@
 # This is the system controller
 
-import InstrumentController
-import ServerController
+from InstrumentController import InstrumentController
+from ServerController import ServerController
 
 
 class SystemController:
