@@ -2,11 +2,8 @@ name: Sort Lib
 
 on:
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
+
 
 jobs:
   linting:
