@@ -33,6 +33,7 @@ def reg_set(subkey: str, name: str, value: str) -> None:
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey, 0, winreg.KEY_SET_VALUE) as k:
         winreg.SetValueEx(k, name, 0, winreg.REG_SZ, value)
 
+
 def clear_mailbox(reset_file_counter: bool = False) -> None:
     """
     Clears the registry mailbox so there are no stale commands/replies on startup.
@@ -68,7 +69,9 @@ def clear_mailbox(reset_file_counter: bool = False) -> None:
 
 def reg_get(subkey: str, name: str, default: str = "") -> str:
     try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, subkey, 0, winreg.KEY_QUERY_VALUE) as k:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, subkey, 0, winreg.KEY_QUERY_VALUE
+        ) as k:
             v, _ = winreg.QueryValueEx(k, name)
             return str(v)
     except FileNotFoundError:
@@ -116,7 +119,12 @@ def wait_for_reply(cmd_id: str, timeout_s: float = TIMEOUT_S) -> dict:
             }
         time.sleep(POLL_INTERVAL_S)
 
-    return {"reply_id": "", "status": "TIMEOUT", "result_path": "", "error": "Timed out waiting for ADL reply"}
+    return {
+        "reply_id": "",
+        "status": "TIMEOUT",
+        "result_path": "",
+        "error": "Timed out waiting for ADL reply",
+    }
 
 
 def main():
@@ -129,8 +137,6 @@ def main():
     _ensure_key(QUEUE_KEY)
     _ensure_key(PARAMS_KEY)
     _ensure_key(STATE_KEY)
-
-
 
     while True:
         choice = input("> ").strip().lower()
@@ -171,20 +177,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 class InstrumentController:
