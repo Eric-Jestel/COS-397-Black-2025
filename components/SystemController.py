@@ -3,20 +3,20 @@
 from InstrumentController import InstrumentController
 from ServerController import ServerController
 
-#------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
 class SystemController:
     
-    #I need variables
-    #------------------------------------------------------------------------------------------------------------------------------------------
+    # I need variables
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def __init__(self, ServerController, InstrumentController):
         self.ServController = ServerController()
         self.InstController = InstrumentController()
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def startUp(self):
-        #verify machine connection
+        # verify machine connection
         InstConn = self.InstController.setup()
         if InstConn == True:
-            #verify server connection
+            # verify server connection
             ServConn = self.ServController.connect()
             if ServConn == True:
                 return 000
@@ -24,11 +24,11 @@ class SystemController:
                 return 110
         else:
             return 100
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def signIn(self, username):
-        #verify connection to ICN
+        # verify connection to ICN
         if self.ServController.connect(): #CHANGE TO PING
-            #send information to server controller to sign in
+            # send information to server controller to sign in
             loggedIn=self.ServController.login(username)
             if loggedIn==True:
                 return 000
@@ -36,9 +36,9 @@ class SystemController:
                 return 220
         else:
             return 110
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def signOut(self):
-        #check to see if anyone is logged in already
+        # check to see if anyone is logged in already
         if self.ServController.is_logged_in():
             if self.ServController.logout():
                 return 000
@@ -46,16 +46,16 @@ class SystemController:
                 return 330
         else:
             return 300
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def runLabMachine(self):
-        #verify instrument connection
+        # verify instrument connection
         if self.InstController: #CHANGE TO PING
-            #sends instructions to machine to run test
+            # sends instructions to machine to run test
             data = self.InstController.take_sample()
             if data:
-                #verify server connection
+                # verify server connection
                 if self.ServController.connect(): #CHANGE TO PING
-                    #sends data to UI somehow and send data to server controller to send to the ICN
+                    # sends data to UI somehow and send data to server controller to send to the ICN
                     self.ServController.send_data(data)
                     return 000, data
                 else:
@@ -64,27 +64,27 @@ class SystemController:
                 return 400, None
         else:
             return 100, None
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def takeBlank(self):
-        #verify instrument connection
+        # verify instrument connection
         if self.InstController: #CHANGE TO PING
-            #sends instructions to machine to run test
+            # sends instructions to machine to run test
             data = self.InstController.take_sample()
             if data:
-                #send data to UI to hold onto for setting the blank
+                # send data to UI to hold onto for setting the blank
                 return 000, data
             else:
                 return 400, None
         else:
             return 100, None
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def setBlank(self):
-        #verify instrument connection
+        # verify instrument connection
         if self.InstController: #CHANGE TO PING
-            #sends instructions to machine to run test
+            # sends instructions to machine to run test
             data = self.InstController.take_sample()
             if data:
-                #send instructions to machine to set data
+                # send instructions to machine to set data
                 set = self.InstController.set_Blank(data)
                 if set == True:
                     return 000, data
@@ -94,24 +94,24 @@ class SystemController:
                 return 400, None
         else:
             return 100, None
-    #------------------------------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------------------------
     def stopProgram(self):
-        #verify the server controller is connected and logged in
+        # verify the server controller is connected and logged in
         if self.ServController.connect(): #CHANGE TO PING
             if self.ServController.is_logged_in():
-                #sends instructions for the Server controller to disconnect
+                # sends instructions for the Server controller to disconnect
                 self.ServController.logout()
-            #verify instrument connection
+            # verify instrument connection
             if self.InstController: #CHANGE TO PING
-                #sends instructions for the Instrument Controller to shut down the machine
+                # sends instructions for the Instrument Controller to shut down the machine
                 self.InstController.shutdown()
                 return 000
             else:
                 return 100
         else:
             return 110
-    #------------------------------------------------------------------------------------------------------------------------------------------
-#error code stuffs
+# ------------------------------------------------------------------------------------------------------------------------------------------
+# error code stuffs
 '''
 All of this is subject to change
 Preabmle = 000 means that it is good to go
@@ -122,7 +122,7 @@ Preabmle = 000 means that it is good to go
 5) 400 = No data :(
 6) 550 = No blank to set
 '''
-#Info needed
+# Info needed
 '''
 I need a way to verify server connectivity (ping it)
 I need a way to verify machine connectivity (maybe ping it?)
