@@ -3,11 +3,14 @@
 # from User_Interface import main.py ?????
 from InstrumentController import InstrumentController
 from ServerController import ServerController
+
+
 # ------------------------------------------------------------------------------------------------------------------------------------------
 class SystemController:
     # I need variables
     ServController = ServerController()
     InstController = InstrumentController()
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def startUp(self):
         # verify machine connection
@@ -21,18 +24,20 @@ class SystemController:
                 return 110
         else:
             return 100
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def signIn(self, username):
         # verify connection to ICN
         if self.ServController.connect():
             # send information to server controller to sign in
-            loggedIn=self.ServController.login(username)
-            if loggedIn==True:
+            loggedIn = self.ServController.login(username)
+            if loggedIn == True:
                 return 222
             else:
                 return 220
         else:
             return 110
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def signOut(self):
         # check to see if anyone is logged in already
@@ -43,6 +48,7 @@ class SystemController:
                 return 330
         else:
             return 300
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def runLabMachine(self):
         # verify instrument connection
@@ -61,6 +67,7 @@ class SystemController:
                 return 400
         else:
             return 100
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def takeBlank(self):
         # verify instrument connection
@@ -74,6 +81,7 @@ class SystemController:
                 return 400
         else:
             return 100
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def setBlank(self, data):
         # verify instrument connection
@@ -91,6 +99,7 @@ class SystemController:
                 return 400
         else:
             return 100
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def stopProgram(self):
         # verify the server controller is connected and logged in
@@ -107,6 +116,7 @@ class SystemController:
                 return 100
         else:
             return 110
+
     # ------------------------------------------------------------------------------------------------------------------------------------------
 # error code stuffs
 '''
