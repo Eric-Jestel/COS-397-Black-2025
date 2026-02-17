@@ -19,7 +19,7 @@ class SystemController:
             #verify server connection
             ServConn = self.ServController.connect()
             if ServConn == True:
-                return 111
+                return 000
             else:
                 return 110
         else:
@@ -31,7 +31,7 @@ class SystemController:
             #send information to server controller to sign in
             loggedIn=self.ServController.login(username)
             if loggedIn==True:
-                return 222
+                return 000
             else:
                 return 220
         else:
@@ -41,7 +41,7 @@ class SystemController:
         #check to see if anyone is logged in already
         if self.ServController.is_logged_in():
             if self.ServController.logout():
-                return 333
+                return 000
             else:
                 return 330
         else:
@@ -57,13 +57,13 @@ class SystemController:
                 if self.ServController.connect(): #CHANGE TO PING
                     #sends data to UI somehow and send data to server controller to send to the ICN
                     self.ServController.send_data(data)
-                    return 440, data
+                    return 000, data
                 else:
-                    return 110
+                    return 110, None
             else:
-                return 400
+                return 400, None
         else:
-            return 100
+            return 100, None
     #------------------------------------------------------------------------------------------------------------------------------------------
     def takeBlank(self):
         #verify instrument connection
@@ -72,11 +72,11 @@ class SystemController:
             data = self.InstController.take_sample()
             if data:
                 #send data to UI to hold onto for setting the blank
-                return 444, data
+                return 000, data
             else:
-                return 400
+                return 400, None
         else:
-            return 100
+            return 100, None
     #------------------------------------------------------------------------------------------------------------------------------------------
     def setBlank(self):
         #verify instrument connection
@@ -87,13 +87,13 @@ class SystemController:
                 #send instructions to machine to set data
                 set = self.InstController.set_Blank(data)
                 if set == True:
-                    return 555, data
+                    return 000, data
                 else:
-                    return 550
+                    return 550, None
             else:
-                return 400
+                return 400, None
         else:
-            return 100
+            return 100, None
     #------------------------------------------------------------------------------------------------------------------------------------------
     def stopProgram(self):
         #verify the server controller is connected and logged in
@@ -105,7 +105,7 @@ class SystemController:
             if self.InstController: #CHANGE TO PING
                 #sends instructions for the Instrument Controller to shut down the machine
                 self.InstController.shutdown()
-                return 666
+                return 000
             else:
                 return 100
         else:
@@ -114,7 +114,7 @@ class SystemController:
 #error code stuffs
 '''
 All of this is subject to change
-Preabmle = three same digits (e.g. 111) mean that it is good to go
+Preabmle = 000 means that it is good to go
 1) 100 = Machine is not connecting
 2) 110 = Server is not connecting
 3) 220 = Not a valid Account
