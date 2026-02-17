@@ -110,6 +110,8 @@ class SystemController:
     #------------------------------------------------------------------------------------------------------------------------------------------
 #error code stuffs
 '''
+All of this is subject to change
+Preabmle = three same digits (e.g. 111) mean that it is good to go
 1) 100 = Machine is not connecting
 2) 110 = Server is not connecting
 3) 220 = Not a valid Account
@@ -117,7 +119,13 @@ class SystemController:
 5) 400 = No data :(
 6) 550 = No blank to set
 '''
+#Info needed
+'''
+I need a way to verify server connectivity (ping it)
+I need a way to verify machine connectivity (maybe ping it?)
+When running the machine is there really no possible way to send information to and from the instrument controller to the machine controller?
 
+'''
 
 
 
