@@ -137,7 +137,7 @@ Preabmle = 000 means that it is good to go
 """
 I need a way to verify server connectivity (ping it)
 I need a way to verify machine connectivity (maybe ping it?)
-When running the machine is there really no possible way to send 
+When running the machine is there really no possible way to send
 information to and from the instrument controller to the machine controller?
 """
 
