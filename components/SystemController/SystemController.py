@@ -118,12 +118,14 @@ class SystemController:
             return 110
 
     # ------------------------------------------------------------------------------------------------------------------------------------------
+
+
 # error code stuffs
-'''
+"""
 1) 100 = Machine is not connecting
 2) 110 = Server is not connecting
 3) 220 = Not a valid Account
 4) 330 = User not logged in
 5) 400 = No data :(
 6) 550 = No blank to set
-'''
+"""
