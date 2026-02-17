@@ -27,7 +27,7 @@ class SystemController:
     #------------------------------------------------------------------------------------------------------------------------------------------
     def signIn(self, username):
         #verify connection to ICN
-        if self.ServController.connect():
+        if self.ServController.connect(): #CHANGE TO PING
             #send information to server controller to sign in
             loggedIn=self.ServController.login(username)
             if loggedIn==True:
@@ -49,12 +49,12 @@ class SystemController:
     #------------------------------------------------------------------------------------------------------------------------------------------
     def runLabMachine(self):
         #verify instrument connection
-        if self.InstController:
+        if self.InstController: #CHANGE TO PING
             #sends instructions to machine to run test
             data = self.InstController.take_sample()
             if data:
                 #verify server connection
-                if self.ServController.connect():
+                if self.ServController.connect(): #CHANGE TO PING
                     #sends data to UI somehow and send data to server controller to send to the ICN
                     self.ServController.send_data(data)
                     return 440, data
@@ -67,7 +67,7 @@ class SystemController:
     #------------------------------------------------------------------------------------------------------------------------------------------
     def takeBlank(self):
         #verify instrument connection
-        if self.InstController:
+        if self.InstController: #CHANGE TO PING
             #sends instructions to machine to run test
             data = self.InstController.take_sample()
             if data:
@@ -78,16 +78,16 @@ class SystemController:
         else:
             return 100
     #------------------------------------------------------------------------------------------------------------------------------------------
-    def setBlank(self, data):
+    def setBlank(self):
         #verify instrument connection
-        if self.InstController:
+        if self.InstController: #CHANGE TO PING
             #sends instructions to machine to run test
             data = self.InstController.take_sample()
             if data:
                 #send instructions to machine to set data
                 set = self.InstController.set_Blank(data)
                 if set == True:
-                    return 555
+                    return 555, data
                 else:
                     return 550
             else:
@@ -97,12 +97,12 @@ class SystemController:
     #------------------------------------------------------------------------------------------------------------------------------------------
     def stopProgram(self):
         #verify the server controller is connected and logged in
-        if self.ServController.connect():
+        if self.ServController.connect(): #CHANGE TO PING
             if self.ServController.is_logged_in():
                 #sends instructions for the Server controller to disconnect
                 self.ServController.logout()
             #verify instrument connection
-            if self.InstController:
+            if self.InstController: #CHANGE TO PING
                 #sends instructions for the Instrument Controller to shut down the machine
                 self.InstController.shutdown()
                 return 666
