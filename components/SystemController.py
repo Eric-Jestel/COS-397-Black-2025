@@ -18,10 +18,10 @@ class SystemController:
     def startUp(self):
         # verify machine connection
         InstConn = self.InstController.setup()
-        if InstConn == True:
+        if InstConn:
             # verify server connection
             ServConn = self.ServController.connect()
-            if ServConn == True:
+            if ServConn:
                 return 000
             else:
                 return 110
@@ -34,7 +34,7 @@ class SystemController:
         if self.ServController.connect():  # CHANGE TO PING
             # send information to server controller to sign in
             loggedIn = self.ServController.login(username)
-            if loggedIn == True:
+            if loggedIn:
                 return 000
             else:
                 return 220
@@ -94,7 +94,7 @@ class SystemController:
             if data:
                 # send instructions to machine to set data
                 set = self.InstController.set_Blank(data)
-                if set == True:
+                if set:
                     return 000, data
                 else:
                     return 550, None
@@ -137,7 +137,8 @@ Preabmle = 000 means that it is good to go
 """
 I need a way to verify server connectivity (ping it)
 I need a way to verify machine connectivity (maybe ping it?)
-When running the machine is there really no possible way to send information to and from the instrument controller to the machine controller?
+When running the machine is there really no possible way to send 
+information to and from the instrument controller to the machine controller?
 """
 
 

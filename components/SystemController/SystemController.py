@@ -15,10 +15,10 @@ class SystemController:
     def startUp(self):
         # verify machine connection
         InstConn = self.InstController.setup()
-        if InstConn == True:
+        if InstConn:
             # verify server connection
             ServConn = self.ServController.connect()
-            if ServConn == True:
+            if ServConn:
                 return 111
             else:
                 return 110
@@ -31,7 +31,7 @@ class SystemController:
         if self.ServController.connect():
             # send information to server controller to sign in
             loggedIn = self.ServController.login(username)
-            if loggedIn == True:
+            if loggedIn:
                 return 222
             else:
                 return 220
@@ -91,7 +91,7 @@ class SystemController:
             if data:
                 # send instructions to machine to set data
                 set = self.InstController.set_Blank(data)
-                if set == True:
+                if set:
                     return 555
                 else:
                     return 550
