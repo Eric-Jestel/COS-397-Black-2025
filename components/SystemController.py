@@ -5,9 +5,12 @@ from ServerController import ServerController
 
 #------------------------------------------------------------------------------------------------------------------------------------------
 class SystemController:
+    
     #I need variables
-    ServController = ServerController()
-    InstController = InstrumentController()
+    #------------------------------------------------------------------------------------------------------------------------------------------
+    def __init__(self, ServerController, InstrumentController):
+        self.ServController = ServerController()
+        self.InstController = InstrumentController()
     #------------------------------------------------------------------------------------------------------------------------------------------
     def startUp(self):
         #verify machine connection
