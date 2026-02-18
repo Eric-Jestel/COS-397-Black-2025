@@ -13,7 +13,15 @@ class SystemController:
     def __init__(self, ServerController, InstrumentController):
         self.ServController = ServerController()
         self.InstController = InstrumentController()
-
+        self.ErrorDictionary = {
+            0:   "Good to go",
+            100: "Machine is not connecting",
+            110: "Server is not connecting",
+            220: "Not a valid Account",
+            330: "User not logged in",
+            400: "No data",
+            550: "No blank to set"
+        }
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def startUp(self):
         # verify machine connection
@@ -133,6 +141,8 @@ Preabmle = 000 means that it is good to go
 5) 400 = No data :(
 6) 550 = No blank to set
 """
+
+
 # Info needed
 """
 I need a way to verify server connectivity (ping it)
