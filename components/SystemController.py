@@ -15,7 +15,7 @@ class SystemController:
         self.InstController = InstrumentController()
         # needed a dictionary for error codes
         self.ErrorDictionary = {
-            0:   "Good to go",
+            0: "Good to go",
             100: "Machine is not connecting",
             110: "Server is not connecting",
             220: "Not a valid Account",
