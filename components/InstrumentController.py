@@ -116,7 +116,9 @@ class InstrumentController:
         status = str(reply.get("status", "")).upper()
         return status not in {"", "TIMEOUT", "ERROR", "FAILED"}
 
-    def _send_and_wait(self, command: str, params: dict, timeout_s: float = None) -> dict:
+    def _send_and_wait(
+        self, command: str, params: dict, timeout_s: float = None
+    ) -> dict:
         cmd_id = self._send_command(command, params)
         return self._wait_for_reply(cmd_id, timeout_s=timeout_s)
 
@@ -157,10 +159,10 @@ class InstrumentController:
                 for line in f:
                     key, value = line.strip().split(",", 1)
                     existing_params[key] = value
-        
+
         # Update with new params
         existing_params.update(input_params)
-        
+
         # Write all params back
         with open(params_file, "w") as f:
             for key, value in existing_params.items():
