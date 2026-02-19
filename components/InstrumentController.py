@@ -223,6 +223,8 @@ class InstrumentController:
             params["blank_file"] = self.blank_file
 
         reply = self._send_and_wait("READ", params)
+        if not self._is_success(reply):
+            return None
         sample_name = datetime.now().strftime("sample_%Y%m%d_%H%M%S")
         return Sample(sample_name, "uv-vis", [], 0.0)
 
