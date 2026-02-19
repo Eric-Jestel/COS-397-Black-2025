@@ -19,10 +19,14 @@ class _RegistryKeyContext:
 def test_reg_set_writes_string_value_to_registry():
     key_object = object()
 
-    with patch("components.InstrumentController.winreg.CreateKey") as create_key, patch(
-        "components.InstrumentController.winreg.OpenKey",
-        return_value=_RegistryKeyContext(key_object),
-    ) as open_key, patch("components.InstrumentController.winreg.SetValueEx") as set_value:
+    with (
+        patch("components.InstrumentController.winreg.CreateKey") as create_key,
+        patch(
+            "components.InstrumentController.winreg.OpenKey",
+            return_value=_RegistryKeyContext(key_object),
+        ) as open_key,
+        patch("components.InstrumentController.winreg.SetValueEx") as set_value,
+    ):
         InstrumentController._reg_set(InstrumentController.QUEUE_KEY, "Command", "PING")
 
     create_key.assert_called_once_with(
@@ -54,14 +58,17 @@ def test_reg_get_returns_default_when_key_missing():
 
 
 def test_send_command_commits_in_correct_order():
-    with patch("components.InstrumentController.uuid.uuid4", return_value="cmd-123"), patch.object(
-        InstrumentController, "_reg_set"
-    ) as reg_set:
+    with (
+        patch("components.InstrumentController.uuid.uuid4", return_value="cmd-123"),
+        patch.object(InstrumentController, "_reg_set") as reg_set,
+    ):
         command_id = InstrumentController._send_command("READ", {"wavelength_nm": 260})
 
     assert command_id == "cmd-123"
     assert reg_set.call_args_list == [
-        call(InstrumentController.PARAMS_KEY, "Json", json.dumps({"wavelength_nm": 260})),
+        call(
+            InstrumentController.PARAMS_KEY, "Json", json.dumps({"wavelength_nm": 260})
+        ),
         call(InstrumentController.QUEUE_KEY, "CommandId", "cmd-123"),
         call(InstrumentController.QUEUE_KEY, "Command", "READ"),
     ]
@@ -73,9 +80,14 @@ def test_wait_for_reply_returns_reply_after_polling():
     def reg_get_side_effect(*_args, **_kwargs):
         return reg_get_values.pop(0)
 
-    with patch.object(InstrumentController, "_reg_get", side_effect=reg_get_side_effect), patch(
-        "components.InstrumentController.time.time", side_effect=[0.0, 0.01, 0.02, 0.03]
-    ), patch("components.InstrumentController.time.sleep"):
+    with (
+        patch.object(InstrumentController, "_reg_get", side_effect=reg_get_side_effect),
+        patch(
+            "components.InstrumentController.time.time",
+            side_effect=[0.0, 0.01, 0.02, 0.03],
+        ),
+        patch("components.InstrumentController.time.sleep"),
+    ):
         reply = InstrumentController._wait_for_reply("cmd-123", timeout_s=1.0)
 
     assert reply == {
@@ -87,9 +99,11 @@ def test_wait_for_reply_returns_reply_after_polling():
 
 
 def test_wait_for_reply_times_out_when_reply_never_arrives():
-    with patch.object(InstrumentController, "_reg_get", return_value=""), patch(
-        "components.InstrumentController.time.time", side_effect=[0.0, 0.5, 1.1]
-    ), patch("components.InstrumentController.time.sleep"):
+    with (
+        patch.object(InstrumentController, "_reg_get", return_value=""),
+        patch("components.InstrumentController.time.time", side_effect=[0.0, 0.5, 1.1]),
+        patch("components.InstrumentController.time.sleep"),
+    ):
         reply = InstrumentController._wait_for_reply("cmd-404", timeout_s=1.0)
 
     assert reply["status"] == "TIMEOUT"
@@ -146,7 +160,11 @@ def test_take_blank_uses_result_path_when_scan_succeeds(tmp_path):
     with patch.object(
         controller,
         "_send_and_wait",
-        return_value={"status": "OK", "result_path": "C:/bridge/out/blank.csv", "error": ""},
+        return_value={
+            "status": "OK",
+            "result_path": "C:/bridge/out/blank.csv",
+            "error": "",
+        },
     ) as send_wait:
         result = controller.take_blank(str(target_file))
 
