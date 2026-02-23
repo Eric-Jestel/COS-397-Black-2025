@@ -6,27 +6,30 @@ import requests
 from dotenv import load_dotenv
 import os
 import time
+from pathlib import Path
+from datetime import datetime, timezone
 
 
 class ServerController:
     """
     Communicates with the Inter Chem Net Server
     """
+
     def __init__(self, file_dir):
-        
+
         load_dotenv()
 
         self.api_key = os.getenv("ICN_PRIVATE_API_KEY")
-        self.api_url = "https://interchemnet.avibe-stag.com/spectra/api/{link_end}?key={api_key}"
-        
+        self.api_url = (
+            "https://interchemnet.avibe-stag.com/spectra/api/{link_end}?key={api_key}"
+        )
+
         self.user = None
 
         self.UUID = 0
         self.UUID_expiry = 0
 
         self.file_dir = file_dir
-
-
 
     def ping(self):
         """
@@ -36,7 +39,9 @@ class ServerController:
             Boolean: True if successful
         """
 
-        url_input = self.api_url.format(link_end="connection-check", api_key=self.api_key)
+        url_input = self.api_url.format(
+            link_end="connection-check", api_key=self.api_key
+        )
 
         response = requests.get(url_input)
 
@@ -63,18 +68,19 @@ class ServerController:
         self.UUID = 0
         self.UUID_expiry = 0
         self.user = None
-        
+
         url_input = self.api_url.format(link_end="user-session", api_key=self.api_key)
 
         json_input = {"studentUserName": username}
 
         response = requests.post(url_input, json=json_input)
-        
+
         if response.json().get("success"):
+            # server returns ISO datetime string for expiresOn
             self.UUID = response.json().get("sessionUUID")
             self.UUID_expiry = response.json().get("expiresOn")
             self.user = username
-            return True
+            return {"expiresOn": self.UUID_expiry}
         else:
             return False
 
@@ -97,25 +103,33 @@ class ServerController:
         Returns:
             Boolean: True if a user is logged in
         """
-        if (self.UUID == 0):
-            self.UUID = 0
-            self.UUID_expiry = 0
-            self.user = None
-            return False
-        
-        if (self.UUID_expiry < time.time()):
-            self.UUID = 0
-            self.UUID_expiry = 0
-            self.user = None
+        return self.validate()
+
+    def validate(self) -> bool:
+        """
+        Validate session: three clauses
+          1) session UUID exists (non-zero/non-empty)
+          2) expiry time is in the future
+          3) username exists
+
+        Returns True if all clauses pass.
+        """
+        # 1: session UUID
+        if not self.UUID:
             return False
 
-        if (self.user == None):
-            self.UUID = 0
-            self.UUID_expiry = 0
-            self.user = None
+        # 3: username exists
+        if not self.user:
             return False
 
-        return True
+        # 2: expiry in future
+        if not self.UUID_expiry:
+            return False
+        try:
+            exp = datetime.fromisoformat(self.UUID_expiry.replace("Z", "+00:00"))
+            return datetime.now(timezone.utc) < exp
+        except Exception:
+            return False
 
     def send_all_data(self):
         """
@@ -127,13 +141,36 @@ class ServerController:
 
         successes = []
 
-        for filename in os.listdir(self.file_dir):
-            if filename.endswith(".txt") and "unsent" in filename:
-                successes.append((filename, False))
-                if self.send_data(os.path.join(self.file_dir, filename)):
-                    new_filename = filename.replace("unsent", "sent")
-                    os.rename(os.path.join(self.file_dir, filename), os.path.join(self.file_dir, new_filename))
-                    successes[-1] = (filename, True)
+        p = Path(self.file_dir)
+        if not p.exists():
+            return successes
+
+        for filepath in p.iterdir():
+            if not filepath.is_file():
+                continue
+            if filepath.suffix.lower() not in {".csv", ".txt"}:
+                continue
+
+            stem = filepath.stem
+            parts = stem.rsplit("_", 2)
+            if len(parts) != 3:
+                continue
+            owner, dt_str, flag = parts
+            if flag.lower() != "unsent":
+                continue
+
+            sent = False
+            if self.user != owner or not self.is_logged_in():
+                # attempt to login as that owner
+                self.login(owner)
+
+            if self.send_data(str(filepath)):
+                # rename to sent
+                new_name = f"{owner}_{dt_str}_sent{filepath.suffix}"
+                filepath.rename(filepath.with_name(new_name))
+                sent = True
+
+            successes.append((filepath.name, sent))
 
         return successes
 
@@ -148,26 +185,34 @@ class ServerController:
             Boolean: True if it successful send all unsent data
         """
 
-        if (self.UUID_expiry < time.time()):
+        # ensure logged in and session valid
+        if not self.is_logged_in():
             return False
-        if (self.user == None):
+
+        parsed = self.parse_sample(samplePath)
+        if not parsed:
             return False
-        if (self.UUID == 0):
+
+        data_key = parsed.get("datetime")
+        data_array = parsed.get("data", [])
+
+        url_input = self.api_url.format(
+            link_end="instrument_data_upload", api_key=self.api_key
+        )
+
+        json_input = {
+            "sessionUUID": self.UUID,
+            "dataKey": data_key,
+            "dataArray": data_array,
+        }
+
+        try:
+            response = requests.post(url_input, json=json_input)
+            if response.json().get("success"):
+                return True
+        except Exception:
             return False
-        
 
-        formatted = self.parse_sample(samplePath)
-
-        dataKey = formatted.get("dataKey")
-
-        url_input = self.api_url.format(link_end="instrument_data_upload", api_key=self.api_key)
-
-        json_input = {"sessionUUID": self.UUID, "dataKey": dataKey, "dataArray": formatted}
-
-        response = requests.post(url_input, json=json_input)
-
-        if response.json().get("success"):
-            return True
         return False
 
     def parse_sample(self, sampleName):
@@ -181,14 +226,97 @@ class ServerController:
             JSON: The JSON object that represents the sample
         """
 
-        sampleID = os.path.splitext(sampleName)[0]  # Extract filename without extension
-    
-        with open(os.path.join(self.file_dir, sampleName), 'r') as f:
-            existing_params = {}
-            for line in f:
-                key, value = line.strip().split(',', 1)  # Split only on the first comma
-                existing_params[key] = value
-        
-        sampleOwner = existing_params.get("owner")
-        
-        return [sampleID, sampleOwner, existing_params]
+        # sampleName is filename relative to file_dir
+        p = Path(self.file_dir) / sampleName
+        if not p.exists():
+            return None
+
+        stem = p.stem
+        parts = stem.rsplit("_", 2)
+        if len(parts) != 3:
+            return None
+        owner, dt_str, flag = parts
+
+        # validate datetime
+        try:
+            _ = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+        except Exception:
+            return None
+
+        ranges = []
+        settings = {}
+        data = []
+
+        with open(p, "r", encoding="utf-8") as f:
+            for raw in f:
+                # do not strip fixed-width positions; only remove trailing newline
+                line = raw.rstrip("\n")
+                if not line.strip():
+                    continue
+                # tag is the first token before a space
+                parts = line.split(" ", 1)
+                tag = parts[0].upper()
+                rest = parts[1] if len(parts) > 1 else ""
+
+                if tag == "SETTING":
+                    # SETTING {32-char name}{1 space}{32-char value}
+                    name_field = rest[0:32]
+                    # skip the single space at position 32
+                    value_field = rest[33 : 33 + 32] if len(rest) >= 33 else rest[32:]
+                    name = name_field.rstrip()
+                    value = value_field.rstrip()
+                    if name:
+                        settings[name] = value
+
+                elif tag == "DATA":
+                    # DATA {12-char wavelength}{1 space}{13-char absorbance}
+                    wav_field = rest[0:12]
+                    abs_field = rest[13 : 13 + 13] if len(rest) >= 13 else rest[12:]
+                    try:
+                        wav = float(wav_field.strip())
+                    except Exception:
+                        continue
+                    try:
+                        absv = float(abs_field.strip())
+                    except Exception:
+                        continue
+                    data.append({"wavelength": wav, "absorbance": absv})
+
+                elif tag == "RANGE":
+                    # RANGE {12-char low}{1 space}{12-char high}{1 space}{4-char num}
+                    low_field = rest[0:12]
+                    high_field = rest[13 : 13 + 12] if len(rest) >= 25 else rest[12:]
+                    num_field = rest[26 : 26 + 4] if len(rest) >= 30 else rest[24:]
+                    try:
+                        low = float(low_field.strip())
+                    except Exception:
+                        low = None
+                    try:
+                        high = float(high_field.strip())
+                    except Exception:
+                        high = None
+                    try:
+                        num = int(num_field.strip()) if num_field.strip() else None
+                    except Exception:
+                        num = None
+                    ranges.append({"low": low, "high": high, "num": num})
+
+                else:
+                    # Unknown tag — attempt to parse whitespace-separated numeric pair
+                    tokens = [t for t in line.split() if t]
+                    if len(tokens) >= 2:
+                        try:
+                            wav = float(tokens[0])
+                            absv = float(tokens[1])
+                            data.append({"wavelength": wav, "absorbance": absv})
+                        except Exception:
+                            pass
+
+        return {
+            "sampleID": stem,
+            "owner": owner,
+            "datetime": dt_str,
+            "ranges": ranges,
+            "settings": settings,
+            "data": data,
+        }
