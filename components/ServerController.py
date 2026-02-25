@@ -261,7 +261,7 @@ class ServerController:
                     # SETTING {32-char name}{1 space}{32-char value}
                     name_field = rest[0:32]
                     # skip the single space at position 32
-                    value_field = rest[33:33 + 32] if len(rest) >= 33 else rest[32:]
+                    value_field = rest[33 : 33 + 32] if len(rest) >= 33 else rest[32:]
                     name = name_field.rstrip()
                     value = value_field.rstrip()
                     if name:
@@ -270,7 +270,7 @@ class ServerController:
                 elif tag == "DATA":
                     # DATA {12-char wavelength}{1 space}{13-char absorbance}
                     wav_field = rest[0:12]
-                    abs_field = rest[13:13 + 13] if len(rest) >= 13 else rest[12:]
+                    abs_field = rest[13 : 13 + 13] if len(rest) >= 13 else rest[12:]
                     try:
                         wav = float(wav_field.strip())
                     except Exception:
@@ -284,8 +284,8 @@ class ServerController:
                 elif tag == "RANGE":
                     # RANGE {12-char low}{1 space}{12-char high}{1 space}{4-char num}
                     low_field = rest[0:12]
-                    high_field = rest[13:13 + 12] if len(rest) >= 25 else rest[12:]
-                    num_field = rest[26:26 + 4] if len(rest) >= 30 else rest[24:]
+                    high_field = rest[13 : 13 + 12] if len(rest) >= 25 else rest[12:]
+                    num_field = rest[26 : 26 + 4] if len(rest) >= 30 else rest[24:]
                     try:
                         low = float(low_field.strip())
                     except Exception:
