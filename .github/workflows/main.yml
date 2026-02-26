@@ -23,7 +23,7 @@ jobs:
         python -m black --check --diff .
     - name: Lint with flake8
       run: |
-        python -m flake8 . --show-source --statistics
+        python -m flake8 . --show-source --statistics --extend-ignore E203
 
 
   test:
