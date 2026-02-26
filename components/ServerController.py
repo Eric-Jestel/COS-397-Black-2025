@@ -286,7 +286,7 @@ class ServerController:
                     # RANGE {12-char low}{1 space}{12-char high}{1 space}{4-char num}
                     low_field = rest[0:12]
                     high_field = rest[13 : 13 + 12] if len(rest) >= 25 else rest[12:]
-                    num_field = rest[26 :26 + 4] if len(rest) >= 30 else rest[24:]
+                    num_field = rest[26 : 26 + 4] if len(rest) >= 30 else rest[24:]
                     try:
                         low = float(low_field.strip())
                     except Exception:
