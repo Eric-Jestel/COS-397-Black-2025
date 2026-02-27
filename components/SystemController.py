@@ -1,10 +1,176 @@
 # This is the system controller
 
-import InstrumentController
-import ServerController
+from InstrumentController import InstrumentController
+from ServerController import ServerController
 
 
+# ------------------------------------------------------------------------------------------------------------------------------------------
 class SystemController:
+
+    # I need variables
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def __init__(self, ServerController, InstrumentController):
+        self.ServController = ServerController()
+        self.InstController = InstrumentController()
+        # needed a dictionary for error codes
+        self.ErrorDictionary = {
+            0: "Good to go",
+            100: "Machine is not connecting",
+            110: "Server is not connecting",
+            220: "Not a valid Account",
+            330: "User not logged in",
+            400: "No data",
+            550: "No blank to set",
+        }
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def startUp(self):
+        # verify machine connection
+        InstConn = self.InstController.setup()
+        if InstConn:
+            # verify server connection
+            ServConn = self.ServController.connect()
+            if ServConn:
+                return 000
+            else:
+                return 110
+        else:
+            return 100
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def signIn(self, username):
+        # verify connection to ICN
+        if self.ServController.ping():
+            # send information to server controller to sign in
+            loggedIn = self.ServController.login(username)
+            if loggedIn:
+                return 000
+            else:
+                return 220
+        else:
+            return 110
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def signOut(self):
+        # verify server connectivity
+        if self.ServController.ping():
+            # send all data to the server controller after taking samples
+            self.ServController.send_all_data()
+            # check to see if anyone is logged in already
+            if self.ServController.is_logged_in():
+                if self.ServController.logout():
+                    return 000
+                else:
+                    return 330
+            else:
+                return 300
+        else:
+            return 110
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def runLabMachine(self):
+        # verify instrument connection
+        if self.InstController:  # CHANGE TO PING
+            # sends instructions to machine to run test
+            data = self.InstController.take_sample()
+            if data:
+                # verify server connection
+                if self.ServController.ping():
+                    # sends data to UI somehow and send data to server controller to send to the ICN
+                    self.ServController.send_data(data)
+                    return 000, data
+                else:
+                    return 110, None
+            else:
+                return 400, None
+        else:
+            return 100, None
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def takeBlank(self):
+        # verify instrument connection
+        if self.InstController:  # CHANGE TO PING
+            # sends instructions to machine to run test
+            data = self.InstController.take_blank()
+            if data:
+                # send data to UI to hold onto for setting the blank
+                return 000, data
+            else:
+                return 400, None
+        else:
+            return 100, None
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def setBlank(self, data):
+        # verify instrument connection
+        if self.InstController:  # CHANGE TO PING
+            if data:
+                # send instructions to machine to set data
+                set = self.InstController.set_blank(data)
+                if set:
+                    return 000
+                else:
+                    return 550
+            else:
+                return 400
+        else:
+            return 100
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def takeSample(self):
+        # verify instrument connection
+        if self.InstController:  # CHANGE TO PING
+            # sends instructions to machine to run test
+            data = self.InstController.take_sample()
+            if data:
+                # send data to UI to hold onto for setting the blank
+                return 000, data
+            else:
+                return 400, None
+        else:
+            return 100, None
+
+    # ------------------------------------------------------------------------------------------------------------------------------------------
+    def stopProgram(self):
+        # verify the server controller is connected and logged in
+        if self.ServController.ping():
+            if self.ServController.is_logged_in():
+                # sends instructions for the Server controller to disconnect
+                self.ServController.logout()
+            # verify instrument connection
+            if self.InstController:  # HANGE TO PING
+                # sends instructions for the Instrument Controller to shut down the machine
+                self.InstController.shutdown()
+                return 000
+            else:
+                return 100
+        else:
+            return 110
+
+
+# ------------------------------------------------------------------------------------------------------------------------------------------
+# error code stuffs
+"""
+All of this is subject to change
+Preabmle = 000 means that it is good to go
+1) 100 = Machine is not connecting
+2) 110 = Server is not connecting
+3) 220 = Not a valid Account
+4) 330 = User not logged in
+5) 400 = No data :(
+6) 550 = No blank to set
+"""
+# Info needed
+"""
+I need a way to verify server connectivity (ping it)
+I need a way to verify machine connectivity (maybe ping it?)
+When running the machine is there really no possible way to send
+information to and from the instrument controller to the machine controller?
+"""
+
+
+class SystemControllerSample:
 
     instCon = InstrumentController()
     servCon = ServerController()
