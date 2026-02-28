@@ -19,4 +19,3 @@ class InstrumentControllerOpus:
     def loadBlank(self, filepath="C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\RefBlank.0"): # TA can change so fix later
         # uses the filepath to load the blank
         self.opus.open(filepath)
-        return
