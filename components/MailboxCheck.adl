@@ -1,0 +1,138 @@
+' CaryBridge_Logger.ADL
+' Reads registry mailbox commands and writes each command to sequentially numbered files.
+
+Sub Ping
+  If IsInstOnline Then
+	  lprint("Instrument Online") 
+  Else
+    lprint("Instrument Offline")
+  End If
+End Sub
+
+Sub Main
+
+  defaultSBW = 2
+  defaultSaturation = 0.1
+  defaultWavelengthStart = 600
+  defaultWavelengthStop = 500
+
+  SBW = defaultSBW
+  saturation = defaultSaturation
+  wavelengthStart = defaultWavelengthStart
+  wavelengthStop = defaultWavelengthStop
+
+  folder = "C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\Scans\"
+  scanfile = "Scan4.csv"
+
+  Const ROOT$   = "\Software\GenChem\CaryBridge"
+  Const OUTDIR$ = "C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\ADL Scripts"
+
+  ' (Optional) minimize host window so it stays out of the way
+  ' SetWindowState(0)
+
+  ' Try to ensure output directory exists (ignore errors if it already exists)
+  On Error Resume Next
+  MkDir OUTDIR$
+  On Error GoTo 0
+
+  ' Initialize state
+  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "RUNNING"
+  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Error", ""
+  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", ""
+  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", ""
+
+  Do
+    DoEvents
+
+    ' Allow stopping from host environment
+    If StopPressed Then Exit Do
+
+    cmd$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Queue", "Command"))
+    If Len(cmd$) > 0 Then
+
+      ' Consume command immediately to avoid double-processing
+      RegWrite HKEY_CURRENT_USER, ROOT$, "Queue", "Command", ""
+
+      cmdId$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Queue", "CommandId"))
+
+
+      ' Clear previous response fields
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "BUSY"
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Error", ""
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", ""
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", ""
+
+      ' Increment persistent file counter
+      nStr$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "State", "FileCounter"))
+      If Len(nStr$) = 0 Then
+        n = 0
+      Else
+        n = CInt(nStr$)
+      End If
+      n = n + 1
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "FileCounter", CStr(n)
+
+      filename$ = OUTDIR$ + CStr(n) + ".txt"
+
+      Select Case cmd
+        Case "PING"
+          If IsInstOnline Then
+	          lprint("Instrument Online") 
+          Else
+            lprint("Instrument Offline")
+          End If
+
+        Case "SCAN"
+          NewCtm("data")
+          ClearCtm("data")
+
+          SetVal("Common Slit Width", SBW)
+	        SetVal("Common SAT", saturation)
+          SetVal("Scan Mode", Scan_Mode_nm)
+          SetVal("Scan Start", wavelengthStart)
+          SetVal("Scan Stop", wavelengthStop)
+
+          'DoBaseline
+          'lprint("baseline done")
+          Collect("data")
+
+          FConvert("data", 1, folder & scanfile) ' 1 coresponds to a csv file
+
+        Case Else
+          lprint("Command failed")
+      End Select
+
+      ' Write command to file (uppercase)
+      On Error GoTo WriteFail
+
+      f = 1
+      Open filename$ For Output As #f
+      Print #f, UCase(cmd$)
+      Close #f
+
+      ' Acknowledge to Python
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", filename$
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "DONE"
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", cmdId$
+
+      ' Continue polling
+      GoTo ContinueLoop
+
+WriteFail:
+      ' Best-effort error reporting
+      On Error Resume Next
+      Close #1
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Error", "Failed to write: " + filename$
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "ERROR"
+      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", cmdId$
+      On Error GoTo 0
+
+ContinueLoop:
+      ' nothing
+
+    End If
+  Loop
+
+  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "STOPPED"
+
+End Sub

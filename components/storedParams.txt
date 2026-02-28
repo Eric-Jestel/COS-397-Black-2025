@@ -1,0 +1,2 @@
+scan_start_nm,600
+scan_stop_nm,500

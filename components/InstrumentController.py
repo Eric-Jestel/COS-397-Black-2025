@@ -1,6 +1,7 @@
 # This is the Instrument Controller
 
 
+
 try:
     from Sample import Sample
 except ImportError:
@@ -191,6 +192,7 @@ class InstrumentController:
         }
         reply = self._send_and_wait("SCAN", params)
         if self._is_success(reply):
+            print("Blank scan successful, result path:", reply.get("result_path"))
             self.blank_file = reply.get("result_path") or str(out_target)
             return True
         return False
@@ -237,3 +239,20 @@ class InstrumentController:
         """
         reply = self._send_and_wait("SHUTDOWN", {})
         return self._is_success(reply)
+
+import subprocess
+import time
+
+file = ".\\COS-397-Black-2025\\components\\MailboxCheck.adl"
+
+subprocess.Popen(file, shell=True)
+
+print("Launched. Wait 10 seconds")
+time.sleep(10)
+
+
+testing = InstrumentController()
+
+print(testing.setup())
+print(testing.take_blank("test_blank.txt"))
+

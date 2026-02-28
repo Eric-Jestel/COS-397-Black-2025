@@ -1,0 +1,7 @@
+Sub Main
+    If IsInstOnline Then
+	    lprint("Instrument Online") 
+    Else
+        lprint("Instrument Offline")
+    End If
+End Sub
