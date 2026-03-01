@@ -16,6 +16,18 @@ End Sub
 Sub RegResetParam(ROOT$)
   RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "Json", "")
   RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "Filename", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "WavelengthStart", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "WavelengthStop", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "Satuation", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "Banwidth", "")
+End Sub
+
+Sub Settings(bandwidth#, saturation#, wavelengthStart%, wavelengthStop%)
+  SetVal("Common Slit Width", bandwidth#)
+  SetVal("Common SAT", saturation#)
+  SetVal("Scan Mode", Scan_Mode_nm)
+  SetVal("Scan Start", wavelengthStart%)
+  SetVal("Scan Stop", wavelengthStop%)
 End Sub
 
 Function Ping$
@@ -55,15 +67,15 @@ End Function
 
 Sub Main
 
-  defaultSBW = 2
-  defaultSaturation = 0.1
-  defaultWavelengthStart = 600
-  defaultWavelengthStop = 500
+  defaultBandwidth# = 2
+  defaultSaturation# = 0.1
+  defaultWavelengthStart% = 600
+  defaultWavelengthStop% = 500
 
-  SBW = defaultSBW
-  saturation = defaultSaturation
-  wavelengthStart = defaultWavelengthStart
-  wavelengthStop = defaultWavelengthStop
+  bandwidth# = defaultBandwidth#
+  saturation# = defaultSaturation#
+  wavelengthStart% = defaultWavelengthStart%
+  wavelengthStop% = defaultWavelengthStop%
 
   folder = "C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\Scans\"
   scanfile = "Scan4.csv"
@@ -85,11 +97,7 @@ Sub Main
   NewCtm("data")
   ClearCtm("data")
 
-  SetVal("Common Slit Width", SBW)
-  SetVal("Common SAT", saturation)
-  SetVal("Scan Mode", Scan_Mode_nm)
-  SetVal("Scan Start", wavelengthStart)
-  SetVal("Scan Stop", wavelengthStop)
+  Settings(bandwidth#, satuation#, wavelengthStart%, wavelengthStop%)
 
   Do
     DoEvents
@@ -123,11 +131,47 @@ Sub Main
       status$ = ""
 
       Select Case cmd
+        Case "SETUP"
+          paramWaveStart$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "WavelengthStart"))
+          paramWaveStop$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "WavelengthStop"))
+          paramSat$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "Saturation"))
+          paramBandwidth$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "Bandwidth"))
+
+          If Len(paramWaveStart$) > 0 Then
+            defaultWavelengthStart = CInt(paramWaveStart$)
+          End If
+          If Len(paramWaveStop$) > 0 Then
+            defaultWavelengthStop = CInt(paramWaveStop$)
+          End If
+          If Len(paramSat$) > 0 Then
+            defaultSaturation = CDbl(paramSat$)
+          End If
+          If Len(paramBandwidth$) > 0 Then
+            defaultBandwidth = CDbl(paramBandwidth$)
+          End If
+
+          bandwidth# = defaultBandwidth#
+          saturation# = defaultSaturation#
+          wavelengthStart% = defaultWavelengthStart%
+          wavelengthStop% = defaultWavelengthStop%
+
+          Settings(bandwidth#, satuation#, wavelengthStart%, wavelengthStop%)
+          status$ = "IDLE"
+
+        Case "RESET"
+          bandwidth# = defaultBandwidth#
+          saturation# = defaultSaturation#
+          wavelengthStart% = defaultWavelengthStart%
+          wavelengthStop% = defaultWavelengthStop%
+
+          Settings(bandwidth#, satuation#, wavelengthStart%, wavelengthStop%)
+          status$ = "IDLE"
+
         Case "PING"
           status$ = Ping
 
         Case "SCAN"
-          filename$ = RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "Filename")
+          filename$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "Filename"))
           ClearCtm("data")
           ReturnToStart(Wavelength_XMode, wavelengthStart)
 
