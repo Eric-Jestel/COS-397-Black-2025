@@ -1,5 +1,5 @@
 from brukeropus import Opus
-import os
+# import os
 
 
 # need a class
@@ -15,7 +15,10 @@ class InstrumentControllerOpus:
         # gets a reference sample aka a blank from the machine
         print("Taking Blank")
         self.opus.measure_ref()
-        self.opus.save_ref("C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\RefBlank.0") # TA can set name so fix later
-    def loadBlank(self, filepath="C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\RefBlank.0"): # TA can change so fix later
+        # TA can set name so fix later
+        self.opus.save_ref(r"C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\RefBlank.0")
+
+    # TA can change so fix later
+    def loadBlank(self, filepath=r"C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\RefBlank.0"):
         # uses the filepath to load the blank
         self.opus.open(filepath)
