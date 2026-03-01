@@ -1,5 +1,7 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
+from datetime import datetime
+from pathlib import Path
 
 from app.dialogs.file_selector import ask_open_csv
 from app.views.advanced_options import AdvancedOptionsDialog
@@ -172,27 +174,71 @@ class SetupPageView(ttk.Frame):
 
     # Stub handlers
     def on_capture_blank(self):
-        self.app.state.blank_file_path = "captured_blank.csv (not saved)"
+        target = (
+            Path(self.app.controller.ServController.file_dir)
+            / f"blank_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        )
+        code, blank_path = self.app.controller.takeBlank(str(target))
+        if code == 0:
+            self.app.state.blank_file_path = blank_path
+            messagebox.showinfo("Capture Blank", f"Blank captured: {blank_path}")
+        else:
+            messagebox.showerror(
+                "Capture Blank",
+                self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+            )
 
     def on_load_blank(self):
         path = ask_open_csv(self)
         if path:
-            self.app.state.blank_file_path = path
+            code = self.app.controller.setBlank(path)
+            if code == 0:
+                self.app.state.blank_file_path = path
+                messagebox.showinfo("Load Blank", f"Loaded blank file:\n{path}")
+            else:
+                messagebox.showerror(
+                    "Load Blank",
+                    self.app.controller.ErrorDictionary.get(
+                        code, f"Error code: {code}"
+                    ),
+                )
 
     def on_save_blank(self):
-        pass
+        if self.app.state.blank_file_path:
+            messagebox.showinfo(
+                "Save Blank",
+                "Blank is already stored by the instrument bridge at:\n"
+                f"{self.app.state.blank_file_path}",
+            )
+            return
+        messagebox.showwarning("Save Blank", "No blank is currently loaded.")
 
     def on_reset_blank(self):
+        if hasattr(self.app.controller.InstController, "clear_blank"):
+            self.app.controller.InstController.clear_blank()
         self.app.state.blank_file_path = None
 
     def on_toggle_debug(self):
         self.app.state.debug_mode = not self.app.state.debug_mode
+        debug_on = self.app.state.debug_mode
+        self.app.controller.debug = debug_on
+        self.app.controller.InstController.debug = debug_on
+        self.app.controller.ServController.debug = debug_on
+        messagebox.showinfo(
+            "Debug Mode", f"Debug mode {'enabled' if debug_on else 'disabled'}."
+        )
 
     def on_reconnect_instrument(self):
-        self.app.state.instrument_connected = True
+        self.app.state.instrument_connected = self.app.controller.InstController.ping()
+        if not self.app.state.instrument_connected:
+            messagebox.showwarning("Instrument", "Instrument reconnect failed.")
 
     def on_reconnect_server(self):
-        self.app.state.server_status = "OK"
+        self.app.state.server_status = (
+            "OK" if self.app.controller.ServController.connect() else "Disconnected"
+        )
+        if self.app.state.server_status != "OK":
+            messagebox.showwarning("Server", "Server reconnect failed.")
 
     def open_advanced_options(self):
         AdvancedOptionsDialog(self, app=self.app)

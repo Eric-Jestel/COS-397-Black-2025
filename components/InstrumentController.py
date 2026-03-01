@@ -1,6 +1,5 @@
 # This is the Instrument Controller
 
-
 try:
     from Sample import Sample
 except ImportError:
@@ -11,8 +10,11 @@ import json
 import time
 import uuid
 import winreg
+import subprocess
 from datetime import datetime
 from pathlib import Path
+
+print("InstrumentController module loaded")
 
 
 class InstrumentController:
@@ -22,16 +24,36 @@ class InstrumentController:
 
     ROOT = r"Software\GenChem\CaryBridge"
     QUEUE_KEY = ROOT + r"\Queue"
-    PARAMS_KEY = ROOT + r"\Params"
+    PARAM_KEY = ROOT + r"\Param"
     STATE_KEY = ROOT + r"\State"
+    ADL_FILE = ".\\components\\MailboxCheck.adl"
     POLL_INTERVAL_S = 0.1
     TIMEOUT_S = 60.0
 
-    def __init__(self):
+    def __init__(self, debug: bool = False):
+        print(f"[InstrumentController][RECEIVED] __init__ payload={{'debug': {debug}}}")
+        self.debug = bool(debug)
         self.blank_file = ""
         self.sample_wavelength_nm = 260
         self.scan_start_nm = 600
         self.scan_stop_nm = 500
+        print("[InstrumentController][EXECUTED] __init__ result=initialized")
+
+    def _debug(self, message: str) -> None:
+        if self.debug:
+            print(f"[InstrumentController] {message}")
+
+    def _print_received(self, command: str, payload=None) -> None:
+        print(f"[InstrumentController][RECEIVED] {command} payload={payload}")
+
+    def _print_executed(self, command: str, result=None) -> None:
+        print(f"[InstrumentController][EXECUTED] {command} result={result}")
+
+    def _print_tx(self, destination: str, command: str, payload=None) -> None:
+        print(
+            f"[InstrumentController][TX] destination={destination}, "
+            f"command={command}, payload={payload}"
+        )
 
     @staticmethod
     def _ensure_key(subkey: str) -> None:
@@ -61,7 +83,7 @@ class InstrumentController:
     @classmethod
     def _clear_mailbox(cls, reset_file_counter: bool = False) -> None:
         cls._ensure_key(cls.QUEUE_KEY)
-        cls._ensure_key(cls.PARAMS_KEY)
+        cls._ensure_key(cls.PARAM_KEY)
         cls._ensure_key(cls.STATE_KEY)
 
         status = cls._reg_get(cls.STATE_KEY, "Status", "")
@@ -70,7 +92,9 @@ class InstrumentController:
 
         cls._reg_set(cls.QUEUE_KEY, "Command", "")
         cls._reg_set(cls.QUEUE_KEY, "CommandId", "")
-        cls._reg_set(cls.PARAMS_KEY, "Json", "")
+        cls._reg_set(cls.PARAM_KEY, "Json", "")
+        cls._reg_set(cls.PARAM_KEY, "Filename", "")
+        cls._reg_set(cls.PARAM_KEY, "Json", "")
         cls._reg_set(cls.STATE_KEY, "ReplyId", "")
         cls._reg_set(cls.STATE_KEY, "ResultPath", "")
         cls._reg_set(cls.STATE_KEY, "Error", "")
@@ -82,9 +106,14 @@ class InstrumentController:
     @classmethod
     def _send_command(cls, command: str, params: dict) -> str:
         cmd_id = str(uuid.uuid4())
-        cls._reg_set(cls.PARAMS_KEY, "Json", json.dumps(params))
+        cls._reg_set(cls.PARAM_KEY, "Json", json.dumps(params))
+        cls._reg_set(cls.PARAM_KEY, "Filename", params.get("filename", ""))
         cls._reg_set(cls.QUEUE_KEY, "CommandId", cmd_id)
         cls._reg_set(cls.QUEUE_KEY, "Command", command)
+        print(
+            "[InstrumentController][TX] destination=ADL_Bridge_Registry, "
+            f"command={command}, payload={{'cmd_id': '{cmd_id}', 'params': {params}}}"
+        )
         return cmd_id
 
     @classmethod
@@ -114,29 +143,77 @@ class InstrumentController:
     @staticmethod
     def _is_success(reply: dict) -> bool:
         status = str(reply.get("status", "")).upper()
-        return status not in {"", "TIMEOUT", "ERROR", "FAILED"}
+        return status not in {"", "TIMEOUT", "ERROR", "FAILED", "OFFLINE"}
 
     def _send_and_wait(
         self, command: str, params: dict, timeout_s: float = None
     ) -> dict:
+        self._print_received(
+            "_send_and_wait",
+            {
+                "command": command,
+                "params": params,
+                "timeout_s": timeout_s or self.TIMEOUT_S,
+            },
+        )
+        self._debug(
+            f"TX command={command}, params={params}, timeout_s={timeout_s or self.TIMEOUT_S}"
+        )
+        self._print_tx("ADL_Bridge_Registry", command, params)
+
         cmd_id = self._send_command(command, params)
-        return self._wait_for_reply(cmd_id, timeout_s=timeout_s)
+        reply = self._wait_for_reply(cmd_id, timeout_s=timeout_s)
+
+        self._debug(f"RX reply={reply}")
+        self._print_executed("_send_and_wait", {"cmd_id": cmd_id, "reply": reply})
+
+        return reply
 
     def setup(self):
         """
         Sets up the instrument
         """
+        self._print_received("setup")
         try:
+            self._debug("setup() starting mailbox clear + PING")
+
             self._clear_mailbox(reset_file_counter=False)
-            self._ensure_key(self.QUEUE_KEY)
-            self._ensure_key(self.PARAMS_KEY)
-            self._ensure_key(self.STATE_KEY)
-            reply = self._send_and_wait(
-                "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
-            )
-            return self._is_success(reply)
-        except OSError:
+            # Launches the ADL file that communicates with the instrument
+            subprocess.Popen(self.ADL_FILE, shell=True)
+
+            # self._ensure_key(self.QUEUE_KEY)
+            # self._ensure_key(self.PARAMS_KEY)
+            # self._ensure_key(self.STATE_KEY)
+
+            # reply = self._send_and_wait(
+            #     "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
+            # )
+            # ok = self._is_success(reply)
+
+            ok = self.ping()
+            self._debug(f"setup() -> {ok}")
+            self._print_executed("setup", ok)
+
+            return ok
+        except OSError as exc:
+            self._debug(f"setup() registry error: {exc}")
+            self._print_executed("setup", False)
             return False
+
+    def ping(self) -> bool:
+        """
+        Lightweight connectivity check against the instrument bridge.
+        """
+        self._print_received("ping")
+        self._debug("ping() invoked")
+
+        reply = self._send_and_wait(
+            "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
+        )
+        result = self._is_success(reply)
+
+        self._print_executed("ping", result)
+        return result
 
     def changeParams(self, input_params: dict):
         """
@@ -150,6 +227,8 @@ class InstrumentController:
             Boolean: True if successful
         """
 
+        self._print_received("changeParams", input_params)
+        self._debug(f"changeParams() input={input_params}")
         params_file = Path(__file__).parent / "storedParams.txt"
 
         # Load existing params if file exists
@@ -168,6 +247,8 @@ class InstrumentController:
             for key, value in existing_params.items():
                 f.write(f"{key},{value}\n")
 
+        self._debug(f"changeParams() wrote {len(existing_params)} param entries")
+        self._print_executed("changeParams", True)
         return True
 
     def take_blank(self, filename):
@@ -180,6 +261,9 @@ class InstrumentController:
         Returns:
             Boolean: True if successful
         """
+        self._print_received("take_blank", {"filename": filename})
+        self._debug(f"take_blank() requested filename={filename}")
+
         out_target = Path(filename)
         out_target.parent.mkdir(parents=True, exist_ok=True)
         out_base = out_target.with_suffix("")
@@ -188,12 +272,25 @@ class InstrumentController:
             "start_nm": self.scan_start_nm,
             "stop_nm": self.scan_stop_nm,
             "out_base": str(out_base),
+            "filename": filename,
         }
-        reply = self._send_and_wait("SCAN", params)
+        reply = self._send_and_wait("BLANK", params)
         if self._is_success(reply):
+            print("Blank scan successful, result path:", reply.get("result_path"))
+
             self.blank_file = reply.get("result_path") or str(out_target)
+
+            self._debug(f"take_blank() success blank_file={self.blank_file}")
+            self._print_executed(
+                "take_blank", {"success": True, "blank_file": self.blank_file}
+            )
+
             return True
-        return False
+        else:
+            self._debug(f"take_blank() failed reply={reply}")
+            self._print_executed("take_blank", {"success": False, "reply": reply})
+
+            return False
 
     def set_blank(self, filename):
         """
@@ -205,28 +302,73 @@ class InstrumentController:
         Returns:
             Boolean: True if successful
         """
+        self._print_received("set_blank", {"filename": filename})
+
         blank_path = Path(filename)
         if not blank_path.exists():
-            return False
-        self.blank_file = str(blank_path)
-        return True
+            self._debug(f"set_blank() failed missing file: {blank_path}")
+            self._print_executed("set_blank", False)
 
-    def take_sample(self):
+            return False
+        else:
+            self.blank_file = str(blank_path)
+
+            self._debug(f"set_blank() success blank_file={self.blank_file}")
+            self._print_executed("set_blank", True)
+
+            return True
+
+    def clear_blank(self) -> None:
+        self._print_received("clear_blank")
+        self.blank_file = ""
+        self._debug("clear_blank() blank reference removed")
+        self._print_executed("clear_blank", True)
+
+    def take_sample(self, filename):
         """
         Sends a command to the instrument to take a sample and converts the sample to a Sample object
+
+        Args:
+            filename (String): the name of the file that the sample will be saved to
 
         Returns:
             Sample: the sample that the instrument collected
         """
-        params = {"wavelength_nm": self.sample_wavelength_nm}
+        self._print_received(
+            "take_sample",
+            {
+                "sample_wavelength_nm": self.sample_wavelength_nm,
+                "blank_file": self.blank_file or None,
+            },
+        )
+
+        params = {
+            "wavelength_nm": self.sample_wavelength_nm,
+            "filename": filename,
+        }
         if self.blank_file:
             params["blank_file"] = self.blank_file
 
-        reply = self._send_and_wait("READ", params)
+        self._debug(f"take_sample() params={params}")
+
+        reply = self._send_and_wait("SCAN", params)
         if not self._is_success(reply):
+            self._debug(f"take_sample() failed reply={reply}")
+            self._print_executed("take_sample", None)
+
             return None
+
         sample_name = datetime.now().strftime("sample_%Y%m%d_%H%M%S")
-        return Sample(sample_name, "uv-vis", [], 0.0)
+        sample = Sample(sample_name, "uv-vis", [], 0.0)
+
+        self._debug(f"take_sample() success sample={sample.name}")
+        print(
+            "[InstrumentController][TX] destination=SystemController/ServerPipeline, "
+            f"command=sample_ready, payload={{'sample_name': '{sample.name}', 'type': '{sample.type}'}}"
+        )
+        self._print_executed("take_sample", sample)
+
+        return sample
 
     def shutdown(self):
         """
@@ -235,5 +377,21 @@ class InstrumentController:
         Returns:
             Boolean: True if successful
         """
+        self._print_received("shutdown")
+
         reply = self._send_and_wait("SHUTDOWN", {})
         return self._is_success(reply)
+
+
+# print("Launched. Wait 10 seconds")
+# time.sleep(10)
+
+# testing = InstrumentController()
+
+# print(testing.setup())
+# print(testing.take_blank("test_blank.txt"))
+
+# ok = self._is_success(reply)
+# self._debug(f"shutdown() -> {ok}")
+# self._print_executed("shutdown", ok)
+# return ok

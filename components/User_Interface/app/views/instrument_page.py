@@ -178,15 +178,31 @@ class InstrumentPageView(ttk.Frame):
         if not self.app.state.username:
             messagebox.showwarning("Login", "Please enter a username.")
             return
-        messagebox.showinfo("Login", f"Logged in as {self.app.state.username}")
+        code = self.app.controller.signIn(self.app.state.username)
+        if code == 0:
+            messagebox.showinfo("Login", f"Logged in as {self.app.state.username}")
+        else:
+            messagebox.showerror(
+                "Login",
+                self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+            )
 
     def on_reset_login(self):
         self.username_var.set("")
         self.app.state.username = ""
 
     def on_take_sample_and_return(self):
-        messagebox.showinfo("Take sample", "Prototype: sample captured.")
-        self.app.show("setup")
+        code, sample = self.app.controller.runLabMachine()
+        if code == 0 and sample:
+            self.app.state.sample_files.append(sample.name)
+            messagebox.showinfo("Take sample", f"Sample captured: {sample.name}")
+            self.app.show("setup")
+            return
+
+        messagebox.showerror(
+            "Take sample",
+            self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+        )
 
     def on_adv(self):
         messagebox.showinfo("Advanced options", "Prototype placeholder.")
