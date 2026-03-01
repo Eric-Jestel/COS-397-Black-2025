@@ -112,11 +112,11 @@ class InstrumentController:
     def _send_command(cls, command: str, params: dict) -> str:
         cmd_id = str(uuid.uuid4())
         cls._reg_set(cls.PARAM_KEY, "Json", json.dumps(params))
-        cls._reg_set(cls.PARAM_KEY, "Filename", params.get("filename", ""))
-        cls._reg_set(cls.PARAM_KEY, "WavelengthStart", params.get("waveStart", ""))
-        cls._reg_set(cls.PARAM_KEY, "WavelengthStop", params.get("waveStop", ""))
-        cls._reg_set(cls.PARAM_KEY, "Satuation", params.get("saturation", ""))
-        cls._reg_set(cls.PARAM_KEY, "Banwidth", params.get("bandwidth", ""))
+        cls._reg_set(cls.PARAM_KEY, "Filename", str(params.get("filename", "")))
+        cls._reg_set(cls.PARAM_KEY, "WavelengthStart", str(params.get("waveStart", "")))
+        cls._reg_set(cls.PARAM_KEY, "WavelengthStop", str(params.get("waveStop", "")))
+        cls._reg_set(cls.PARAM_KEY, "Satuation", str(params.get("saturation", "")))
+        cls._reg_set(cls.PARAM_KEY, "Banwidth", str(params.get("bandwidth", "")))
         cls._reg_set(cls.QUEUE_KEY, "CommandId", cmd_id)
         cls._reg_set(cls.QUEUE_KEY, "Command", command)
         print(
@@ -420,9 +420,9 @@ class InstrumentController:
 # print("Launched. Wait 10 seconds")
 # time.sleep(10)
 
-# testing = InstrumentController()
+testing = InstrumentController()
 
-# print(testing.setup())
+print(testing.setup())
 # print(testing.take_blank("test_blank.txt"))
 
 # ok = self._is_success(reply)
