@@ -12,6 +12,7 @@ except ImportError:
 
 print("SystemController imported")
 
+
 # ------------------------------------------------------------------------------------------------------------------------------------------
 class SystemController:
 
@@ -33,7 +34,9 @@ class SystemController:
         )
         self.debug = bool(debug)
         sample_dir = file_dir or str(Path(__file__).parent / "sample_data")
-        self.ServController = server_controller_cls(file_dir=sample_dir, debug=self.debug)
+        self.ServController = server_controller_cls(
+            file_dir=sample_dir, debug=self.debug
+        )
         self.InstController = instrument_controller_cls(debug=self.debug)
         # needed a dictionary for error codes
         self.ErrorDictionary = {
@@ -208,7 +211,9 @@ class SystemController:
                     / f"blank_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
                 )
             # sends instructions to machine to run test
-            self._print_received("InstrumentController.take_blank", {"filename": filename})
+            self._print_received(
+                "InstrumentController.take_blank", {"filename": filename}
+            )
             data = self.InstController.take_blank(filename)
             self._print_executed("InstrumentController.take_blank", data)
             self._debug(f"takeBlank() result={data}")

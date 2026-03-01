@@ -224,7 +224,9 @@ class SetupPageView(ttk.Frame):
         self.app.controller.debug = debug_on
         self.app.controller.InstController.debug = debug_on
         self.app.controller.ServController.debug = debug_on
-        messagebox.showinfo("Debug Mode", f"Debug mode {'enabled' if debug_on else 'disabled'}.")
+        messagebox.showinfo(
+            "Debug Mode", f"Debug mode {'enabled' if debug_on else 'disabled'}."
+        )
 
     def on_reconnect_instrument(self):
         self.app.state.instrument_connected = self.app.controller.InstController.ping()

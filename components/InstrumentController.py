@@ -208,8 +208,8 @@ class InstrumentController:
         self._debug("ping() invoked")
 
         reply = self._send_and_wait(
-                "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
-            )
+            "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
+        )
         result = self._is_success(reply)
 
         self._print_executed("ping", result)
@@ -281,7 +281,9 @@ class InstrumentController:
             self.blank_file = reply.get("result_path") or str(out_target)
 
             self._debug(f"take_blank() success blank_file={self.blank_file}")
-            self._print_executed("take_blank", {"success": True, "blank_file": self.blank_file})
+            self._print_executed(
+                "take_blank", {"success": True, "blank_file": self.blank_file}
+            )
 
             return True
         else:
@@ -379,6 +381,7 @@ class InstrumentController:
 
         reply = self._send_and_wait("SHUTDOWN", {})
         return self._is_success(reply)
+
 
 # print("Launched. Wait 10 seconds")
 # time.sleep(10)

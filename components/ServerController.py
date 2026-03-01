@@ -16,6 +16,7 @@ except ImportError:
 
 print("ServerController module loaded")
 
+
 class ServerController:
     """
     Communicates with the Inter Chem Net Server
@@ -31,7 +32,9 @@ class ServerController:
         self.debug = bool(debug)
 
         self.api_key = os.getenv("ICN_PRIVATE_API_KEY")
-        print(f"[ServerController][DEBUG] Loaded ICN_PRIVATE_API_KEY: {'set' if self.api_key else 'not set'}")
+        print(
+            f"[ServerController][DEBUG] Loaded ICN_PRIVATE_API_KEY: {'set' if self.api_key else 'not set'}"
+        )
         self.api_url = (
             "https://interchemnet.avibe-stag.com/spectra/api/{link_end}?key={api_key}"
         )
@@ -267,7 +270,7 @@ class ServerController:
     def _build_payload_from_sample_obj(self, sample: Sample):
         self._print_received(
             "_build_payload_from_sample_obj",
-            {"sample_name": getattr(sample, 'name', None)},
+            {"sample_name": getattr(sample, "name", None)},
         )
         if sample is None:
             self._print_executed("_build_payload_from_sample_obj", None)
