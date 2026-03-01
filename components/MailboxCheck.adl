@@ -1,13 +1,57 @@
 ' CaryBridge_Logger.ADL
 ' Reads registry mailbox commands and writes each command to sequentially numbered files.
 
-Sub Ping
+Sub RegStatusWrite(ROOT$, cmdId$, status$)
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "Status", status$)
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", cmdId$)
+End Sub
+
+Sub RegResetState(ROOT$, status$)
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "Status", status$)
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "Error", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", "")
+End Sub
+
+Sub RegResetParam(ROOT$)
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "Json", "")
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "Param", "Filename", "")
+End Sub
+
+Function Ping$
   If IsInstOnline Then
-	  lprint("Instrument Online") 
+    lprint("Instrument Online") 
+    Ping = "ONLINE"
   Else
     lprint("Instrument Offline")
+    Ping = "OFFLINE"
   End If
-End Sub
+End Function
+
+Function WriteToFile$(filename$, data$)
+  ' Write command to file (uppercase)
+  On Error GoTo WriteFail
+
+  f = 1
+  Open filename$ For Output As #f
+  Print #f, UCase(data$)
+  Close #f
+
+  ' Acknowledge to Python
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", filename$)
+  WriteToFile = "DONE"
+
+  Exit Sub
+
+  WriteFail:
+    ' Best-effort error reporting
+    On Error Resume Next
+    Close #1
+    RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "Error", "Failed to write: " + filename$)
+    WriteToFile = "ERROR"
+    On Error GoTo 0
+End Function
+
 
 Sub Main
 
@@ -36,10 +80,16 @@ Sub Main
   On Error GoTo 0
 
   ' Initialize state
-  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "RUNNING"
-  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Error", ""
-  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", ""
-  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", ""
+  RegResetState(ROOT$, "RUNNING")
+
+  NewCtm("data")
+  ClearCtm("data")
+
+  SetVal("Common Slit Width", SBW)
+  SetVal("Common SAT", saturation)
+  SetVal("Scan Mode", Scan_Mode_nm)
+  SetVal("Scan Start", wavelengthStart)
+  SetVal("Scan Stop", wavelengthStop)
 
   Do
     DoEvents
@@ -55,12 +105,8 @@ Sub Main
 
       cmdId$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Queue", "CommandId"))
 
-
       ' Clear previous response fields
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "BUSY"
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Error", ""
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", ""
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", ""
+      RegResetState(ROOT$, "BUSY")
 
       ' Increment persistent file counter
       nStr$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "State", "FileCounter"))
@@ -70,69 +116,51 @@ Sub Main
         n = CInt(nStr$)
       End If
       n = n + 1
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "FileCounter", CStr(n)
+      RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "FileCounter", CStr(n))
 
       filename$ = OUTDIR$ + CStr(n) + ".txt"
 
+      status$ = ""
+
       Select Case cmd
         Case "PING"
-          If IsInstOnline Then
-	          lprint("Instrument Online") 
-          Else
-            lprint("Instrument Offline")
-          End If
+          status$ = Ping
 
         Case "SCAN"
-          NewCtm("data")
+          filename$ = RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "Filename")
           ClearCtm("data")
+          ReturnToStart(Wavelength_XMode, wavelengthStart)
 
-          SetVal("Common Slit Width", SBW)
-	        SetVal("Common SAT", saturation)
-          SetVal("Scan Mode", Scan_Mode_nm)
-          SetVal("Scan Start", wavelengthStart)
-          SetVal("Scan Stop", wavelengthStop)
-
-          'DoBaseline
-          'lprint("baseline done")
           Collect("data")
 
-          FConvert("data", 1, folder & scanfile) ' 1 coresponds to a csv file
+          FConvert("data", 1, folder & filename) ' 1 coresponds to a csv file
+
+          RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", folder & filename)
+          status$ = "DONE"
+
+        Case "BLANK"
+          ReturnToStart(Wavelength_XMode, wavelengthStart)
+          DoBaseline
+
+          status$ = "DONE"
+
+        Case "SHUTDOWN"
+          RegResetParam(ROOT$)
+          RegStatusWrite(ROOT$, cmdId$, "STOPPED")
+          Quit
 
         Case Else
           lprint("Command failed")
+          status$ = WriteToFile(ROOT$, cmdId$, filename$, cmd$)
+
       End Select
 
-      ' Write command to file (uppercase)
-      On Error GoTo WriteFail
-
-      f = 1
-      Open filename$ For Output As #f
-      Print #f, UCase(cmd$)
-      Close #f
-
-      ' Acknowledge to Python
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", filename$
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "DONE"
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", cmdId$
-
-      ' Continue polling
-      GoTo ContinueLoop
-
-WriteFail:
-      ' Best-effort error reporting
-      On Error Resume Next
-      Close #1
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Error", "Failed to write: " + filename$
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "ERROR"
-      RegWrite HKEY_CURRENT_USER, ROOT$, "State", "ReplyId", cmdId$
-      On Error GoTo 0
-
-ContinueLoop:
-      ' nothing
-
+      RegResetParam(ROOT$)
+      RegStatusWrite(ROOT$, cmdId$, status$)
     End If
   Loop
 
-  RegWrite HKEY_CURRENT_USER, ROOT$, "State", "Status", "STOPPED"
+  RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "Status", "STOPPED")
+  Quit
 
 End Sub

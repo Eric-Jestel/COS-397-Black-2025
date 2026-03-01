@@ -67,7 +67,7 @@ def test_send_command_commits_in_correct_order():
     assert command_id == "cmd-123"
     assert reg_set.call_args_list == [
         call(
-            InstrumentController.PARAMS_KEY, "Json", json.dumps({"wavelength_nm": 260})
+            InstrumentController.PARAM_KEY, "Json", json.dumps({"wavelength_nm": 260})
         ),
         call(InstrumentController.QUEUE_KEY, "CommandId", "cmd-123"),
         call(InstrumentController.QUEUE_KEY, "Command", "READ"),
