@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pyqtgraph as pg
 from PyQt6.QtWidgets import (
-    QApplication,
-    QMainWindow,
+    # QApplication,
+    # QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
