@@ -1,8 +1,9 @@
-from brukeropus import Opus, read_opus
+from brukeropus import Opus
 from pathlib import Path
 import shutil
 
 # import os
+# import read_opus when using it
 
 
 # need a class
