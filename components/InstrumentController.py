@@ -37,6 +37,8 @@ class InstrumentController:
         self.sample_wavelength_nm = 260
         self.scan_start_nm = 600
         self.scan_stop_nm = 500
+        self.scan_bw = 2
+        self.scan_sat = 0.1
         print("[InstrumentController][EXECUTED] __init__ result=initialized")
 
     def _debug(self, message: str) -> None:
@@ -94,7 +96,10 @@ class InstrumentController:
         cls._reg_set(cls.QUEUE_KEY, "CommandId", "")
         cls._reg_set(cls.PARAM_KEY, "Json", "")
         cls._reg_set(cls.PARAM_KEY, "Filename", "")
-        cls._reg_set(cls.PARAM_KEY, "Json", "")
+        cls._reg_set(cls.PARAM_KEY, "WavelengthStart", "")
+        cls._reg_set(cls.PARAM_KEY, "WavelengthStop", "")
+        cls._reg_set(cls.PARAM_KEY, "Satuation", "")
+        cls._reg_set(cls.PARAM_KEY, "Banwidth", "")
         cls._reg_set(cls.STATE_KEY, "ReplyId", "")
         cls._reg_set(cls.STATE_KEY, "ResultPath", "")
         cls._reg_set(cls.STATE_KEY, "Error", "")
@@ -107,7 +112,11 @@ class InstrumentController:
     def _send_command(cls, command: str, params: dict) -> str:
         cmd_id = str(uuid.uuid4())
         cls._reg_set(cls.PARAM_KEY, "Json", json.dumps(params))
-        cls._reg_set(cls.PARAM_KEY, "Filename", params.get("filename", ""))
+        cls._reg_set(cls.PARAM_KEY, "Filename", str(params.get("filename", "")))
+        cls._reg_set(cls.PARAM_KEY, "WavelengthStart", str(params.get("waveStart", "")))
+        cls._reg_set(cls.PARAM_KEY, "WavelengthStop", str(params.get("waveStop", "")))
+        cls._reg_set(cls.PARAM_KEY, "Satuation", str(params.get("saturation", "")))
+        cls._reg_set(cls.PARAM_KEY, "Banwidth", str(params.get("bandwidth", "")))
         cls._reg_set(cls.QUEUE_KEY, "CommandId", cmd_id)
         cls._reg_set(cls.QUEUE_KEY, "Command", command)
         print(
@@ -190,11 +199,19 @@ class InstrumentController:
             # )
             # ok = self._is_success(reply)
 
-            ok = self.ping()
-            self._debug(f"setup() -> {ok}")
-            self._print_executed("setup", ok)
+            params = {
+                "waveStart": self.scan_start_nm,
+                "waveStop": self.scan_stop_nm,
+                "saturation": self.scan_sat,
+                "bandwidth": self.scan_bw,
+            }
+            reply = self._send_and_wait("SETUP", params)
+            self._debug(f"setup() -> {reply}")
 
-            return ok
+            result = self._is_success(reply)
+            self._print_executed("setup", result)
+
+            return result
         except OSError as exc:
             self._debug(f"setup() registry error: {exc}")
             self._print_executed("setup", False)
@@ -343,7 +360,7 @@ class InstrumentController:
         )
 
         params = {
-            "wavelength_nm": self.sample_wavelength_nm,
+            # "wavelength_nm": self.sample_wavelength_nm,
             "filename": filename,
         }
         if self.blank_file:
@@ -370,6 +387,23 @@ class InstrumentController:
 
         return sample
 
+    def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
+        params = {
+            "waveStart": waveStart,
+            "waveStop": waveStop,
+            "saturation": saturation,
+            "bandwidth": bandwidth,
+        }
+        reply = self._send_and_wait("SETTING", params)
+
+        return self._is_success(reply)
+
+    def reset(self):
+        params = {}
+        reply = self._send_and_wait("RESET", params)
+        result = self._is_success(reply)
+        return result
+
     def shutdown(self):
         """
         Shuts the instrument down
@@ -386,9 +420,9 @@ class InstrumentController:
 # print("Launched. Wait 10 seconds")
 # time.sleep(10)
 
-# testing = InstrumentController()
+testing = InstrumentController()
 
-# print(testing.setup())
+print(testing.setup())
 # print(testing.take_blank("test_blank.txt"))
 
 # ok = self._is_success(reply)
