@@ -1,6 +1,7 @@
 from brukeropus import Opus, read_opus
 from pathlib import Path
 import shutil
+
 # import os
 
 
@@ -10,7 +11,7 @@ class InstrumentControllerOpus:
     def __init__(self):
         # needs to connect to opus
         self.opus = Opus()
-        
+
         # Path to pre-existing blan file/s
         self.blankPath = None
 

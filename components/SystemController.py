@@ -96,7 +96,7 @@ class SystemController:
             self._print_executed("_server_ready", ready)
             return ready
         try:
-            # sees if the Server Controller is able to ping 
+            # sees if the Server Controller is able to ping
             ready = bool(self.ServController.ping())
             self._debug(f"_server_ready() via ping -> {ready}")
             # logs functionality of the ping function
@@ -179,10 +179,10 @@ class SystemController:
             # logs execution of sending all data
             self._print_executed("ServerController.send_all_data", upload_result)
             self._debug(f"signOut() send_all_data -> {upload_result}")
-            # check to see if anyone is logged in 
+            # check to see if anyone is logged in
             if self.ServController.is_logged_in():
                 self._print_received("ServerController.logout")
-                #logs them out
+                # logs them out
                 if self.ServController.logout():
                     # logs logout was executed successfully
                     self._print_executed("ServerController.logout", True)
@@ -349,9 +349,9 @@ class SystemController:
         # logs stopProgram was called
         self._print_received("stopProgram")
         self._debug("stopProgram() invoked")
-        #verifies Server Controller successfully pings
+        # verifies Server Controller successfully pings
         if self.ServController.ping():
-            #verifies there is an active session
+            # verifies there is an active session
             if self.ServController.is_logged_in():
                 # logs sends instructions for the Server controller to disconnect
                 self._print_received("ServerController.logout")
