@@ -55,4 +55,3 @@ class InstrumentControllerOpus:
 
     def disconnect(self):
         pass
-
