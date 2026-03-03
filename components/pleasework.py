@@ -73,6 +73,16 @@ class InstrumentControllerOpus:
         
         return sample_path
 
+    def ping(self):
+        pass
+
+    def setup(self):
+        pass
+
+    def changeParams(self): # it should allow you to change the starting wavelength, stoping wavelength, saturstion, and something else, not sure what.
+        pass
+
+
     def disconnect(self):
         pass
 
