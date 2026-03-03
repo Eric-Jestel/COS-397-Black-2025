@@ -115,7 +115,7 @@ class InstrumentController:
             cls._reg_set(cls.STATE_KEY, "FileCounter", "0")
 
     @classmethod
-    def _send_command(cls, command: str, params: dict) -> str:
+    def _send_command(cls, command: str, params: dict = {}) -> str:
         cmd_id = str(uuid.uuid4())
         cls._reg_set(cls.PARAM_KEY, "Json", json.dumps(params))
         cls._reg_set(cls.PARAM_KEY, "Filename", str(params.get("filename", "")))
@@ -161,7 +161,7 @@ class InstrumentController:
         return status not in {"", "TIMEOUT", "ERROR", "FAILED", "OFFLINE"}
 
     def _send_and_wait(
-        self, command: str, params: dict, timeout_s: float = None
+        self, command: str, params: dict = {}, timeout_s: float = None
     ) -> dict:
         self._print_received(
             "_send_and_wait",
@@ -184,6 +184,9 @@ class InstrumentController:
 
         return reply
 
+    def _get_result_path(self) -> str:
+        return self._reg_get(self.STATE_KEY, "ResultPath", "")
+
     def setup(self):
         """
         Sets up the instrument
@@ -203,7 +206,7 @@ class InstrumentController:
                 "saturation": self.scan_sat,
                 "bandwidth": self.scan_bw,
             }
-            reply = self._send_and_wait("SETUP", params)
+            reply = self._send_and_wait("SETUP", params, timeout_s=30.0)
             self._debug(f"setup() -> {reply}")
 
             result = self._is_success(reply)
@@ -222,49 +225,12 @@ class InstrumentController:
         self._print_received("ping")
         self._debug("ping() invoked")
 
-        reply = self._send_and_wait(
-            "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=5.0
-        )
+        reply = self._send_and_wait("PING")
         result = self._is_success(reply)
 
         self._print_executed("ping", result)
         return result
 
-    # def changeParams(self, input_params: dict):
-    #     """
-    #     Changes the parameters of the instrument
-
-    #     Args:
-    #         input_params (dict): a dictionary of parameters to change. Valid keys:
-    #             TBD - depends on what the instrument takes
-
-    #     Returns:
-    #         Boolean: True if successful
-    #     """
-
-    #     self._print_received("changeParams", input_params)
-    #     self._debug(f"changeParams() input={input_params}")
-    #     params_file = Path(__file__).parent / "storedParams.txt"
-
-    #     # Load existing params if file exists
-    #     existing_params = {}
-    #     if params_file.exists():
-    #         with open(params_file, "r") as f:
-    #             for line in f:
-    #                 key, value = line.strip().split(",", 1)
-    #                 existing_params[key] = value
-
-    #     # Update with new params
-    #     existing_params.update(input_params)
-
-    #     # Write all params back
-    #     with open(params_file, "w") as f:
-    #         for key, value in existing_params.items():
-    #             f.write(f"{key},{value}\n")
-
-    #     self._debug(f"changeParams() wrote {len(existing_params)} param entries")
-    #     self._print_executed("changeParams", True)
-    #     return True
 
     def take_blank(self, filename):
         """
@@ -284,9 +250,6 @@ class InstrumentController:
         out_base = out_target.with_suffix("")
 
         params = {
-            "start_nm": self.scan_start_nm,
-            "stop_nm": self.scan_stop_nm,
-            "out_base": str(out_base),
             "filename": filename,
         }
         reply = self._send_and_wait("BLANK", params)
@@ -373,34 +336,34 @@ class InstrumentController:
 
             return None
 
-        sample_name = datetime.now().strftime("sample_%Y%m%d_%H%M%S")
-        sample = Sample(sample_name, "uv-vis", [], 0.0)
+        # sample_name = datetime.now().strftime("sample_%Y%m%d_%H%M%S")
+        sample = self._get_result_path()
 
-        self._debug(f"take_sample() success sample={sample.name}")
-        print(
-            "[InstrumentController][TX] destination=SystemController/ServerPipeline, "
-            f"command=sample_ready, payload={{'sample_name': '{sample.name}', 'type': '{sample.type}'}}"
-        )
-        self._print_executed("take_sample", sample)
+        # self._debug(f"take_sample() success sample={sample.name}")
+        # print(
+        #     "[InstrumentController][TX] destination=SystemController/ServerPipeline, "
+        #     f"command=sample_ready, payload={{'sample_name': '{sample.name}', 'type': '{sample.type}'}}"
+        # )
+        # self._print_executed("take_sample", sample)
 
         return sample
 
-    # def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
-    #     params = {
-    #         "waveStart": waveStart,
-    #         "waveStop": waveStop,
-    #         "saturation": saturation,
-    #         "bandwidth": bandwidth,
-    #     }
-    #     reply = self._send_and_wait("SETTING", params)
+    def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
+        params = {
+            "waveStart": waveStart,
+            "waveStop": waveStop,
+            "saturation": saturation,
+            "bandwidth": bandwidth,
+        }
+        reply = self._send_and_wait("SETTING", params)
 
-    #     return self._is_success(reply)
+        return self._is_success(reply)
 
-    # def reset(self):
-    #     params = {}
-    #     reply = self._send_and_wait("RESET", params)
-    #     result = self._is_success(reply)
-    #     return result
+    def reset(self):
+        params = {}
+        reply = self._send_and_wait("RESET", params)
+        result = self._is_success(reply)
+        return result
 
     def shutdown(self):
         """
@@ -419,7 +382,10 @@ class InstrumentController:
 # time.sleep(10)
 # print(testing.take_blank("test_blank.txt"))
 
-# ok = self._is_success(reply)
-# self._debug(f"shutdown() -> {ok}")
-# self._print_executed("shutdown", ok)
-# return ok
+instrument_controller = InstrumentController()
+
+print(instrument_controller.setup())
+print(instrument_controller.ping())
+instrument_controller.take_sample("test_sample1.txt")
+instrument_controller.take_sample("test_sample2.txt")
+instrument_controller.take_sample("test_sample3.txt")
