@@ -28,10 +28,12 @@ class InstrumentController:
     STATE_KEY = ROOT + r"\State"
     ADL_FILE = ".\\components\\MailboxCheck.adl"
     POLL_INTERVAL_S = 0.1
-    TIMEOUT_S = 60.0
+    TIMEOUT_S = 10.0
 
     def __init__(self, debug: bool = False):
-        print(f"[InstrumentController][RECEIVED] __init__ payload={{'debug': {debug}}}")
+        if (debug):
+            print(f"[InstrumentController][RECEIVED] __init__ payload={{'debug': {debug}}}")
+        
         self.debug = bool(debug)
         self.blank_file = ""
         self.sample_wavelength_nm = 260
@@ -39,7 +41,9 @@ class InstrumentController:
         self.scan_stop_nm = 500
         self.scan_bw = 2
         self.scan_sat = 0.1
-        print("[InstrumentController][EXECUTED] __init__ result=initialized")
+
+        if (debug):
+            print("[InstrumentController][EXECUTED] __init__ result=initialized")
 
     def _debug(self, message: str) -> None:
         if self.debug:
@@ -185,19 +189,11 @@ class InstrumentController:
         self._print_received("setup")
         try:
             self._debug("setup() starting mailbox clear + PING")
-
+            #Clears the windows registry
             self._clear_mailbox(reset_file_counter=False)
+
             # Launches the ADL file that communicates with the instrument
             subprocess.Popen(self.ADL_FILE, shell=True)
-
-            # self._ensure_key(self.QUEUE_KEY)
-            # self._ensure_key(self.PARAMS_KEY)
-            # self._ensure_key(self.STATE_KEY)
-
-            # reply = self._send_and_wait(
-            #     "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
-            # )
-            # ok = self._is_success(reply)
 
             params = {
                 "waveStart": self.scan_start_nm,
@@ -225,48 +221,48 @@ class InstrumentController:
         self._debug("ping() invoked")
 
         reply = self._send_and_wait(
-            "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=10.0
+            "PING", {"ts": datetime.now().astimezone().isoformat()}, timeout_s=5.0
         )
         result = self._is_success(reply)
 
         self._print_executed("ping", result)
         return result
 
-    def changeParams(self, input_params: dict):
-        """
-        Changes the parameters of the instrument
+    # def changeParams(self, input_params: dict):
+    #     """
+    #     Changes the parameters of the instrument
 
-        Args:
-            input_params (dict): a dictionary of parameters to change. Valid keys:
-                TBD - depends on what the instrument takes
+    #     Args:
+    #         input_params (dict): a dictionary of parameters to change. Valid keys:
+    #             TBD - depends on what the instrument takes
 
-        Returns:
-            Boolean: True if successful
-        """
+    #     Returns:
+    #         Boolean: True if successful
+    #     """
 
-        self._print_received("changeParams", input_params)
-        self._debug(f"changeParams() input={input_params}")
-        params_file = Path(__file__).parent / "storedParams.txt"
+    #     self._print_received("changeParams", input_params)
+    #     self._debug(f"changeParams() input={input_params}")
+    #     params_file = Path(__file__).parent / "storedParams.txt"
 
-        # Load existing params if file exists
-        existing_params = {}
-        if params_file.exists():
-            with open(params_file, "r") as f:
-                for line in f:
-                    key, value = line.strip().split(",", 1)
-                    existing_params[key] = value
+    #     # Load existing params if file exists
+    #     existing_params = {}
+    #     if params_file.exists():
+    #         with open(params_file, "r") as f:
+    #             for line in f:
+    #                 key, value = line.strip().split(",", 1)
+    #                 existing_params[key] = value
 
-        # Update with new params
-        existing_params.update(input_params)
+    #     # Update with new params
+    #     existing_params.update(input_params)
 
-        # Write all params back
-        with open(params_file, "w") as f:
-            for key, value in existing_params.items():
-                f.write(f"{key},{value}\n")
+    #     # Write all params back
+    #     with open(params_file, "w") as f:
+    #         for key, value in existing_params.items():
+    #             f.write(f"{key},{value}\n")
 
-        self._debug(f"changeParams() wrote {len(existing_params)} param entries")
-        self._print_executed("changeParams", True)
-        return True
+    #     self._debug(f"changeParams() wrote {len(existing_params)} param entries")
+    #     self._print_executed("changeParams", True)
+    #     return True
 
     def take_blank(self, filename):
         """
@@ -387,22 +383,22 @@ class InstrumentController:
 
         return sample
 
-    def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
-        params = {
-            "waveStart": waveStart,
-            "waveStop": waveStop,
-            "saturation": saturation,
-            "bandwidth": bandwidth,
-        }
-        reply = self._send_and_wait("SETTING", params)
+    # def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
+    #     params = {
+    #         "waveStart": waveStart,
+    #         "waveStop": waveStop,
+    #         "saturation": saturation,
+    #         "bandwidth": bandwidth,
+    #     }
+    #     reply = self._send_and_wait("SETTING", params)
 
-        return self._is_success(reply)
+    #     return self._is_success(reply)
 
-    def reset(self):
-        params = {}
-        reply = self._send_and_wait("RESET", params)
-        result = self._is_success(reply)
-        return result
+    # def reset(self):
+    #     params = {}
+    #     reply = self._send_and_wait("RESET", params)
+    #     result = self._is_success(reply)
+    #     return result
 
     def shutdown(self):
         """
