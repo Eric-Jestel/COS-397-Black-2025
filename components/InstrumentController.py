@@ -38,11 +38,13 @@ class InstrumentController:
 
         self.debug = bool(debug)
         self.blank_file = ""
-        self.sample_wavelength_nm = 260
-        self.scan_start_nm = 600
-        self.scan_stop_nm = 500
-        self.scan_bw = 2
-        self.scan_sat = 0.1
+
+        self.instrumentParams = {
+            "waveStart": 600,
+            "waveStop": 500,
+            "saturation": .1,
+            "bandwidth": 2
+        }
 
         if debug:
             print("[InstrumentController][EXECUTED] __init__ result=initialized")
@@ -200,12 +202,7 @@ class InstrumentController:
             # Launches the ADL file that communicates with the instrument
             subprocess.Popen(self.ADL_FILE, shell=True)
 
-            params = {
-                "waveStart": self.scan_start_nm,
-                "waveStop": self.scan_stop_nm,
-                "saturation": self.scan_sat,
-                "bandwidth": self.scan_bw,
-            }
+            params = self.instrumentParams
             reply = self._send_and_wait("SETUP", params, timeout_s=30.0)
             self._debug(f"setup() -> {reply}")
 
@@ -314,13 +311,11 @@ class InstrumentController:
         self._print_received(
             "take_sample",
             {
-                "sample_wavelength_nm": self.sample_wavelength_nm,
                 "blank_file": self.blank_file or None,
             },
         )
 
         params = {
-            # "wavelength_nm": self.sample_wavelength_nm,
             "filename": filename,
         }
         if self.blank_file:
@@ -335,34 +330,48 @@ class InstrumentController:
 
             return None
 
-        # sample_name = datetime.now().strftime("sample_%Y%m%d_%H%M%S")
         sample = self._get_result_path()
-
-        # self._debug(f"take_sample() success sample={sample.name}")
-        # print(
-        #     "[InstrumentController][TX] destination=SystemController/ServerPipeline, "
-        #     f"command=sample_ready, payload={{'sample_name': '{sample.name}', 'type': '{sample.type}'}}"
-        # )
-        # self._print_executed("take_sample", sample)
 
         return sample
 
     def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
-        params = {
-            "waveStart": waveStart,
-            "waveStop": waveStop,
-            "saturation": saturation,
-            "bandwidth": bandwidth,
-        }
-        reply = self._send_and_wait("SETTING", params)
+        
+        self.instrumentParams["waveStart"] = waveStart or self.instrumentParams["waveStart"]
+        self.instrumentParams["waveStop"] = waveStop or self.instrumentParams["waveStop"]
+        self.instrumentParams["saturation"] = saturation or self.instrumentParams["saturation"]
+        self.instrumentParams["bandwidth"] = bandwidth or self.instrumentParams["bandwidth"]
+
+        reply = self._send_and_wait("SETTING", self.instrumentParams)
 
         return self._is_success(reply)
+    
+    def getSettings(self):
+        """
+        Returns a dictionairy containing the 4 parameters of the instrument
+
+        Returns:
+            dict: A dictionary containing the 4 parameters of the instrument
+        """
+
+        return self.instrumentParams
 
     def reset(self):
         params = {}
         reply = self._send_and_wait("RESET", params)
         result = self._is_success(reply)
         return result
+
+    def resetSettings(self):
+        self.instrumentParams = {
+            "waveStart": 600,
+            "waveStop": 500,
+            "saturation": .1,
+            "bandwidth": 2
+        }
+        params = self.instrumentParams
+        reply = self._send_and_wait("SETTING", params)
+
+        return self._is_success(reply)
 
     def shutdown(self):
         """
@@ -375,6 +384,7 @@ class InstrumentController:
 
         reply = self._send_and_wait("SHUTDOWN", {})
         return self._is_success(reply)
+    
 
 
 # print("Launched. Wait 10 seconds")
