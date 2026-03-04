@@ -277,8 +277,8 @@ class StatusPanel(Panel):
 
         self.server_sub = ConnectionSubPanel(
             "ICN Server Information",
-            "Click Button to reconnect to server\n" \
-            "If connection cannot be established visit:\n" \
+            "Click Button to reconnect to server\n"
+            "If connection cannot be established visit:\n"
             "https://example.com/support",
             reconnect_cmd=self._on_reconnect_server,
         )
