@@ -213,15 +213,27 @@ class SystemController:
         if self.InstController.ping():
             # logs and sends instructions to machine to run test
             self._print_received("InstrumentController.take_sample")
-            data = self.InstController.take_sample()
+            targetFilename = datetime.now().strftime("%Y%m%d_%H%M%SZ") + ".csv"
+            csv_path = self.InstController.take_sample(targetFilename)
             # logs execution of sending data with the status of data
-            self._print_executed("InstrumentController.take_sample", data)
-            self._debug(f"runLabMachine() sample received={bool(data)}")
+            self._print_executed("InstrumentController.take_sample", csv_path)
+            self._debug(f"runLabMachine() sample received={bool(csv_path)}")
             # checks if data exists
-            if data:
+            if csv_path:
+                self.ServController.process_sample(csv_path)
                 # verify server connection
                 if self.ServController.ping():
                     # sends data to UI somehow and send data to server controller to send to the ICN
+                    self._print_received("ServerController.send_all_data")
+                    sent = self.ServController.send_all_data()
+                    self._print_executed("ServerController.send_all_data", sent)
+                    self._debug(f"runLabMachine() send_all_data -> {sent}")
+                    for fileSent in sent:
+                        if fileSent[1] is False:
+                            self._debug(f"runLabMachine() failed to send {fileSent[0]}")
+                        if fileSent[0] == csv_path:
+                            self._print_executed("runLabMachine", (0, csv_path))
+                            return 000, csv_path
                     self._print_received("ServerController.send_data", data)
                     sent = self.ServController.send_data(data)
                     # logs functionality of sending data
