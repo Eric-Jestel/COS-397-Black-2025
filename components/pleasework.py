@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+
 # import os
 
 
@@ -93,7 +94,6 @@ class InstrumentControllerOpus:
             print("OPUS ping failed:", e)
             return False
 
-
     def setup(self, launch_opus=True) -> bool:
         # Launch OPUS (GUI)
         if launch_opus:
@@ -118,16 +118,16 @@ class InstrumentControllerOpus:
             print("Could not connect to OPUS (are you logged in?):", e)
             return False
 
-    def changeSettings(self, waveStart=None, waveStop=None): # waveStart is the High end
-
+    def changeSettings(
+        self, waveStart=None, waveStop=None
+    ):  # waveStart is the High end
         if waveStart != None:
             self.sampleSettings["hfw"] = waveStart
-        
+
         if waveStop != None:
             self.sampleSettings["lfw"] = waveStop
-        
-        return self.sampleSettings
 
+        return self.sampleSettings
 
     def disconnect(self):
         pass

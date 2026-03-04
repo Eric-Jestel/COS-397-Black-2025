@@ -18,7 +18,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
-# ── Palette (matches setup_page.py) ──────────────────────────────────────────
+# ── Palette ──────────────────────────────────────────
 BG = "#E4E4E4"
 BG_INSET = "#DCDCDC"
 BG_BTN = "#C8C8C8"
@@ -34,29 +34,25 @@ TEXT_BTN = "#3A3A3A"
 class Panel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
             Panel {{
                 background-color: {BG};
                 border: 1px solid {BORDER};
                 border-radius: 5px;
             }}
-        """
-        )
+            """)
 
 
 class InsetBox(QFrame):
     def __init__(self, text: str = "", parent=None):
         super().__init__(parent)
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
             QFrame {{
                 background-color: {BG_INSET};
                 border: none;
                 border-radius: 3px;
             }}
-        """
-        )
+            """)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 8, 10, 8)
         if text:
@@ -85,8 +81,7 @@ class StyledButton(QPushButton):
         self.setMinimumHeight(height)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFont(QFont("Helvetica Neue", size))
-        self.setStyleSheet(
-            f"""
+        self.setStyleSheet(f"""
             QPushButton {{
                 background-color: {BG_BTN};
                 color: {TEXT_BTN};
@@ -96,8 +91,7 @@ class StyledButton(QPushButton):
             }}
             QPushButton:hover   {{ background-color: {BG_BTN_HOV}; }}
             QPushButton:pressed {{ background-color: {BG_BTN_PRS}; }}
-        """
-        )
+            """)
 
 
 # ── Panel 1 : Login ───────────────────────────────────────────────────────────
@@ -131,8 +125,7 @@ class LoginPanel(Panel):
         self.username_input = QLineEdit()
         self.username_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.username_input.setFont(QFont("Helvetica Neue", 9))
-        self.username_input.setStyleSheet(
-            f"""
+        self.username_input.setStyleSheet(f"""
             QLineEdit {{
                 background-color: {BG_INSET};
                 color: {TEXT_MAIN};
@@ -140,8 +133,7 @@ class LoginPanel(Panel):
                 border-radius: 4px;
                 padding: 5px 10px;
             }}
-        """
-        )
+            """)
         if app:
             self.username_input.setText(app.state.username)
         layout.addWidget(self.username_input)
@@ -297,7 +289,10 @@ class ActionPanel(Panel):
         )
 
     def _on_advanced(self):
-        QMessageBox.information(self, "Advanced Options", "Prototype placeholder.")
+        from app.dialogs.advanced_options import AdvancedOptionsDialog
+
+        dialog = AdvancedOptionsDialog(parent=self, app=self.app)
+        dialog.exec()
 
 
 # ── Panel 5 : Data viewer (plot) ──────────────────────────────────────────────
@@ -329,6 +324,11 @@ class DataViewerPanel(Panel):
         self.plot_widget.setLabel("bottom", "Wavelength (nm)", color=TEXT_MAIN)
         self.plot_widget.setLabel("left", "Absorbance (AU)", color=TEXT_MAIN)
         self.plot_widget.setTitle("Sample Data", color=TEXT_MAIN, size="11pt")
+
+        self.plot_widget.setXRange(300, 900, padding=0)
+        self.plot_widget.setYRange(0, 1.1, padding=0)
+        self.plot_widget.setLimits(xMin=300, xMax=900, yMin=0, yMax=1.1)
+        self.plot_widget.setMouseEnabled(x=False, y=False)
 
         axis_pen = pg.mkPen(color=BORDER, width=1)
         for axis in ["bottom", "left", "top", "right"]:
