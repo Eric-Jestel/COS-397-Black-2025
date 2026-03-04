@@ -16,7 +16,6 @@ class InstrumentControllerOpus:
         # needs to connect to opus
         self.opus = Opus()
 
-
         # Path to pre-existing blan file/s
         self.blankPath = None
 
