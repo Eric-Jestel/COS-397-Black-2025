@@ -173,7 +173,7 @@ class SystemController:
         if self._instrument_ready():
             # sends instructions to machine to run test
             self._print_received("InstrumentController.take_sample")
-            targetFilename = datetime.now().strftime("%Y%m%d_%H%M%SZ")+".csv"
+            targetFilename = datetime.now().strftime("%Y%m%d_%H%M%SZ") + ".csv"
             csv_path = self.InstController.take_sample(targetFilename)
             self._print_executed("InstrumentController.take_sample", csv_path)
             self._debug(f"runLabMachine() sample received={bool(csv_path)}")

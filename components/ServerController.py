@@ -297,7 +297,9 @@ class ServerController:
             self._print_executed("send_data", False)
             return False
 
-        url_input = self.api_url.format(link_end="instrument-data-upload", api_key=self.api_key)
+        url_input = self.api_url.format(
+            link_end="instrument-data-upload", api_key=self.api_key
+        )
 
         with open(samplePath, "r") as f:
             dataArray = []
@@ -309,7 +311,11 @@ class ServerController:
                     stripped = stripped[:-1]
                 dataArray.append(json.loads(stripped))
 
-        json_input = {"sessionUUID": self.UUID, "dataKey": data_key, "dataArray": dataArray}
+        json_input = {
+            "sessionUUID": self.UUID,
+            "dataKey": data_key,
+            "dataArray": dataArray,
+        }
 
         response = requests.post(url_input, json=json_input, timeout=10)
         payload = response.json()
@@ -318,8 +324,11 @@ class ServerController:
             f"RX status_code={response.status_code}, success={payload.get('success')}, user={username}"
         )
 
-        if (payload.get("success")):
-            rename_to_sent = Path(samplePath).with_name(Path(samplePath).stem.replace("unsent", "sent") + Path(samplePath).suffix)
+        if payload.get("success"):
+            rename_to_sent = Path(samplePath).with_name(
+                Path(samplePath).stem.replace("unsent", "sent")
+                + Path(samplePath).suffix
+            )
             Path(samplePath).rename(rename_to_sent)
             return True
 
@@ -340,15 +349,24 @@ class ServerController:
         filename_username = self.user
         filename_suffix = "_unsent.json"
 
-        out_path = Path(self.file_dir) / f"{filename_username}_{filename_datetime}{filename_suffix}"
+        out_path = (
+            Path(self.file_dir)
+            / f"{filename_username}_{filename_datetime}{filename_suffix}"
+        )
 
         with open(filepath, "r") as f:
             lines = f.readlines()
-        
+
         with open(out_path, "w") as f:
-            f.write('[\n')
+            f.write("[\n")
             for line in lines[2:-1]:
-                f.write('{"nm": ' + line.split(",")[0] + ', "abs": ' + line.split(",")[1] + '}\n')
-            f.write(']')
-        
+                f.write(
+                    '{"nm": '
+                    + line.split(",")[0]
+                    + ', "abs": '
+                    + line.split(",")[1]
+                    + "}\n"
+                )
+            f.write("]")
+
         return True
