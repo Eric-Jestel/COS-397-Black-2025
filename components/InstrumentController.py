@@ -1,17 +1,17 @@
 # This is the Instrument Controller
 
-try:
-    from Sample import Sample
-except ImportError:
-    from components.Sample import Sample
-
+# try:
+#     from Sample import Sample
+# except ImportError:
+#     from components.Sample import Sample
+# from datetime import datetime
 
 import json
 import time
 import uuid
 import winreg
 import subprocess
-from datetime import datetime
+
 from pathlib import Path
 
 print("InstrumentController module loaded")
@@ -231,7 +231,6 @@ class InstrumentController:
         self._print_executed("ping", result)
         return result
 
-
     def take_blank(self, filename):
         """
         Sends a command to the instrument to take a blank sample and saves it to a file
@@ -247,7 +246,7 @@ class InstrumentController:
 
         out_target = Path(filename)
         out_target.parent.mkdir(parents=True, exist_ok=True)
-        out_base = out_target.with_suffix("")
+        # out_base = out_target.with_suffix("")
 
         params = {
             "filename": filename,
@@ -382,10 +381,10 @@ class InstrumentController:
 # time.sleep(10)
 # print(testing.take_blank("test_blank.txt"))
 
-instrument_controller = InstrumentController()
+# instrument_controller = InstrumentController()
 
-print(instrument_controller.setup())
-print(instrument_controller.ping())
-instrument_controller.take_sample("test_sample1.txt")
-instrument_controller.take_sample("test_sample2.txt")
-instrument_controller.take_sample("test_sample3.txt")
+# print(instrument_controller.setup())
+# print(instrument_controller.ping())
+# instrument_controller.take_sample("test_sample1.txt")
+# instrument_controller.take_sample("test_sample2.txt")
+# instrument_controller.take_sample("test_sample3.txt")
