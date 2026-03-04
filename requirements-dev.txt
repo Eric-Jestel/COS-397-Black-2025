@@ -2,7 +2,7 @@ pytest
 setuptools
 build
 flake8
-black==26.1.0
+black
 wheel
 packaging
 -rrequirements.txt
