@@ -1,4 +1,4 @@
-from brukeropus import Opus, read_opus
+from brukeropus import Opus  # , read_opus
 from pathlib import Path
 import shutil
 # import os
@@ -10,7 +10,7 @@ class InstrumentControllerOpus:
     def __init__(self):
         # needs to connect to opus
         self.opus = Opus()
-        
+
         # Path to pre-existing blan file/s
         self.blankPath = None
 
@@ -32,18 +32,18 @@ class InstrumentControllerOpus:
         self, filepath=r"C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\RefBlank.0"
     ):
         # uses the filepath to load the blank.
-        
-        # I'm not sure this will work since writing .open 
-        # in this way will just cause python to look for an 
+
+        # I'm not sure this will work since writing .open
+        # in this way will just cause python to look for an
         # open function inside opus
-        self.opus.open(filepath) 
+        self.opus.open(filepath)
 
     def setBlank(self, filepath):
         path = Path(filepath)
 
         if not path.exists():
             print("ERROR: Blank file not found.")
-        
+
         folder = str(path.parent)
         filename = path.name
 
@@ -59,20 +59,19 @@ class InstrumentControllerOpus:
 
         return result_1, result_2
 
-    def getSample(self, save_path = None):
+    def getSample(self, save_path=None):
 
         print("Taking Sample...")
         sample_path = self.opus.measure_sample(unload=True)
         print("Saved sample to:", str(sample_path))
 
-        if save_path != None:
+        if save_path is not None:
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(sample_path, str(save_path))
             print("Moved sample to:", str(save_path))
-        
+
         return sample_path
 
     def disconnect(self):
         pass
-
