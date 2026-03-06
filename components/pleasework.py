@@ -63,13 +63,15 @@ class InstrumentControllerOpus:
 
         print("Taking Sample...")
         sample_path = self.opus.measure_sample(unload=True)
+        print(read_opus(sample_path))
         print("Saved sample to:", str(sample_path))
-
+        """"""
         if save_path != None:
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(sample_path, str(save_path))
             print("Moved sample to:", str(save_path))
+        
         
         return sample_path
 
@@ -85,4 +87,9 @@ class InstrumentControllerOpus:
 
     def disconnect(self):
         pass
+
+my_controller = InstrumentControllerOpus()
+save_path = r"C:\Users\Public\Documents\Bruker\Opus_8.8.4\Data\Sample1.0"
+my_controller.getSample(save_path)
+
 
