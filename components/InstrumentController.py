@@ -41,7 +41,7 @@ class InstrumentController:
     REG_S_FILE_COUNTER = "FileCounter"
 
     ADL_FILE = r".\components\MailboxCheck.adl"
-    SCAN_FOLDER = r"C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\Scans\"
+    SCAN_FOLDER = "C:\\Users\\Agilent Cary 60\\Documents\\SoftwareDev - dont delete\\Scans\\"
     POLL_INTERVAL_S = 0.1
     TIMEOUT_S = 10.0
 
@@ -56,7 +56,7 @@ class InstrumentController:
         self.blank_file = ""
 
         self.instrumentParams = {
-            self.REG_P_FILENAME: SCAN_FOLDER,
+            self.REG_P_FILENAME: self.SCAN_FOLDER,
             self.REG_P_WAVE_START: 600,
             self.REG_P_WAVE_STOP: 500,
             self.REG_P_SATURATION: 0.1,
@@ -135,8 +135,8 @@ class InstrumentController:
     @classmethod
     def _send_command(cls, command: str, params: dict = {}) -> str:
         cmd_id = str(uuid.uuid4())
-        For reg in params:
-            cls._reg_set(cls.PARAM_KEY, reg, params.get(reg, ""))
+        for reg in params:
+            cls._reg_set(cls.PARAM_KEY, reg, str(params.get(reg, "")))
         cls._reg_set(cls.QUEUE_KEY, cls.REG_Q_COMMAND_ID, cmd_id)
         cls._reg_set(cls.QUEUE_KEY, cls.REG_Q_COMMAND, command)
         print(
@@ -361,7 +361,7 @@ class InstrumentController:
             bandwidth or self.instrumentParams[self.REG_P_BANDWIDTH]
         )
 
-        reply = self._send_and_wait("SETTING", self.instrumentParams)
+        reply = self._send_and_wait("SETUP", self.instrumentParams)
 
         return self._is_success(reply)
 
@@ -389,7 +389,7 @@ class InstrumentController:
             "bandwidth": 2,
         }
         params = self.instrumentParams
-        reply = self._send_and_wait("SETTING", params)
+        reply = self._send_and_wait("SETUP", params)
 
         return self._is_success(reply)
 
@@ -410,9 +410,9 @@ class InstrumentController:
 # time.sleep(10)
 # print(testing.take_blank("test_blank.txt"))
 
-instrument_controller = InstrumentController()
+# instrument_controller = InstrumentController()
 
-print(instrument_controller.setup())
+# print(instrument_controller.setup())
 # print(instrument_controller.ping())
 # instrument_controller.take_sample("test_sample1.txt")
 # instrument_controller.take_sample("test_sample2.txt")

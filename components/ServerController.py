@@ -15,7 +15,7 @@ class ServerController:
     Communicates with the Inter Chem Net Server
     """
 
-    def __init__(self, file_dir=None, debug: bool = False):
+    def __init__(self, PROJECT_ROOT, file_dir=None, debug: bool = False):
         print(
             f"[ServerController][RECEIVED] __init__ payload={{'file_dir': {file_dir}, 'debug': {debug}}}"
         )
@@ -32,12 +32,14 @@ class ServerController:
             "https://interchemnet.avibe-stag.com/spectra/api/{link_end}?key={api_key}"
         )
 
+        self.PROJECT_ROOT = PROJECT_ROOT
         self.user = None
 
         self.UUID = 0
         self.UUID_expiry = 0
 
-        self.file_dir = file_dir or str(Path(__file__).parent / "sample_data")
+        self.file_dir = PROJECT_ROOT+r"\scans"
+        print("[ServerController][DEBUG] Set file_dir to: " + self.file_dir)
         print("[ServerController][EXECUTED] __init__ result=initialized")
 
     def _debug(self, message: str) -> None:
@@ -352,7 +354,7 @@ class ServerController:
         with open(filepath, "r") as f:
             lines = f.readlines()
 
-        with open(out_path, "w") as f:
+        with open(out_path, "w+") as f:
             f.write("[\n")
             for line in lines[2:-1]:
                 f.write(

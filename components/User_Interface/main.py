@@ -4,8 +4,9 @@ import os
 
 def main():
     PROJECT_ROOT = Path(__file__).resolve().parents[2]
-    if (False):
-        PROJECT_ROOT = r"C:\Users\Administrator\Documents\COS397Capstone\COS-397-Black-2025"
+    if (True):
+        PROJECT_ROOT = r"C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\COS-397-Black-2025"
+    # TODO: Ensure the existence of config and folders
     print(f"Project root: {PROJECT_ROOT}")
     app = PrototypeApp(PROJECT_ROOT)
     app.run()
