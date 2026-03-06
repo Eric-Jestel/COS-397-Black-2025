@@ -27,18 +27,18 @@ class InstrumentController:
     PARAM_KEY = ROOT + r"\Param"
     STATE_KEY = ROOT + r"\State"
 
-    REG_QUEUE_COMMAND = "Command"
-    REG_QUEUE_COMMAND_ID = "CommandId"
-    REG_PARAM_FILENAME = "Filename"
-    REG_PARAM_WAVE_START = "WavelengthStart"
-    REG_PARAM_WAVE_STOP = "WavelengthStop"
-    REG_PARAM_SATURATION = "Saturation"
-    REG_PARAM_BANDWIDTH = "Bandwidth"
-    REG_STATE_REPLY_ID = "ReplyId"
-    REG_STATE_RESULT_PATH = "ResultPath"
-    REG_STATE_ERROR = "Error"
-    REG_STATE_STATUS = "Status"
-    REG_STATE_FILE_COUNTER = "FileCounter"
+    REG_Q_COMMAND = "Command"
+    REG_Q_COMMAND_ID = "CommandId"
+    REG_P_FILENAME = "Filename"
+    REG_P_WAVE_START = "WavelengthStart"
+    REG_P_WAVE_STOP = "WavelengthStop"
+    REG_P_SATURATION = "Saturation"
+    REG_P_BANDWIDTH = "Bandwidth"
+    REG_S_REPLY_ID = "ReplyId"
+    REG_S_RESULT_PATH = "ResultPath"
+    REG_S_ERROR = "Error"
+    REG_S_STATUS = "Status"
+    REG_S_FILE_COUNTER = "FileCounter"
 
     ADL_FILE = r".\components\MailboxCheck.adl"
     SCAN_FOLDER = r"C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\Scans\"
@@ -55,11 +55,11 @@ class InstrumentController:
         self.blank_file = ""
 
         self.instrumentParams = {
-            self.REG_PARAM_FILENAME: SCAN_FOLDER,
-            self.REG_PARAM_WAVE_START: 600,
-            self.REG_PARAM_WAVE_STOP: 500,
-            self.REG_PARAM_SATURATION: 0.1,
-            self.REG_PARAM_BANDWIDTH: 2,
+            self.REG_P_FILENAME: SCAN_FOLDER,
+            self.REG_P_WAVE_START: 600,
+            self.REG_P_WAVE_STOP: 500,
+            self.REG_P_SATURATION: 0.1,
+            self.REG_P_BANDWIDTH: 2,
         }
 
         if debug:
@@ -116,28 +116,28 @@ class InstrumentController:
         if status.upper() == "BUSY":
             print("WARNING: ADL bridge reports Status=BUSY. Clearing mailbox anyway.")
 
-        cls._reg_set(cls.QUEUE_KEY, cls.REG_QUEUE_COMMAND, "")
-        cls._reg_set(cls.QUEUE_KEY, cls.REG_QUEUE_COMMAND_ID, "")
-        cls._reg_set(cls.PARAM_KEY, cls.REG_PARAM_FILENAME, "")
-        cls._reg_set(cls.PARAM_KEY, cls.REG_PARAM_WAVE_START, "")
-        cls._reg_set(cls.PARAM_KEY, cls.REG_PARAM_WAVE_STOP, "")
-        cls._reg_set(cls.PARAM_KEY, cls.REG_PARAM_SATURATION, "")
-        cls._reg_set(cls.PARAM_KEY, cls.REG_PARAM_BANDWIDTH, "")
-        cls._reg_set(cls.STATE_KEY, cls.REG_STATE_REPLY_ID, "")
-        cls._reg_set(cls.STATE_KEY, cls.REG_STATE_RESULT_PATH, "")
-        cls._reg_set(cls.STATE_KEY, cls.REG_STATE_ERROR, "")
-        cls._reg_set(cls.STATE_KEY, cls.REG_STATE_STATUS, "IDLE")
+        cls._reg_set(cls.QUEUE_KEY, cls.REG_Q_COMMAND, "")
+        cls._reg_set(cls.QUEUE_KEY, cls.REG_Q_COMMAND_ID, "")
+        cls._reg_set(cls.PARAM_KEY, cls.REG_P_FILENAME, "")
+        cls._reg_set(cls.PARAM_KEY, cls.REG_P_WAVE_START, "")
+        cls._reg_set(cls.PARAM_KEY, cls.REG_P_WAVE_STOP, "")
+        cls._reg_set(cls.PARAM_KEY, cls.REG_P_SATURATION, "")
+        cls._reg_set(cls.PARAM_KEY, cls.REG_P_BANDWIDTH, "")
+        cls._reg_set(cls.STATE_KEY, cls.REG_S_REPLY_ID, "")
+        cls._reg_set(cls.STATE_KEY, cls.REG_S_RESULT_PATH, "")
+        cls._reg_set(cls.STATE_KEY, cls.REG_S_ERROR, "")
+        cls._reg_set(cls.STATE_KEY, cls.REG_S_STATUS, "IDLE")
 
         if reset_file_counter:
-            cls._reg_set(cls.STATE_KEY, cls.REG_STATE_FILE_COUNTER, "0")
+            cls._reg_set(cls.STATE_KEY, cls.REG_S_FILE_COUNTER, "0")
 
     @classmethod
     def _send_command(cls, command: str, params: dict = {}) -> str:
         cmd_id = str(uuid.uuid4())
         For reg in params:
             cls._reg_set(cls.PARAM_KEY, reg, params.get(reg, ""))
-        cls._reg_set(cls.QUEUE_KEY, cls.REG_QUEUE_COMMAND_ID, cmd_id)
-        cls._reg_set(cls.QUEUE_KEY, cls.REG_QUEUE_COMMAND, command)
+        cls._reg_set(cls.QUEUE_KEY, cls.REG_Q_COMMAND_ID, cmd_id)
+        cls._reg_set(cls.QUEUE_KEY, cls.REG_Q_COMMAND, command)
         print(
             "[InstrumentController][TX] destination=ADL_Bridge_Registry, "
             f"command={command}, payload={{'cmd_id': '{cmd_id}', 'params': {params}}}"
@@ -151,13 +151,13 @@ class InstrumentController:
 
         deadline = time.time() + timeout_s
         while time.time() < deadline:
-            reply_id = cls._reg_get(cls.STATE_KEY, cls.REG_STATE_REPLY_ID, "")
+            reply_id = cls._reg_get(cls.STATE_KEY, cls.REG_S_REPLY_ID, "")
             if reply_id == cmd_id:
                 return {
                     "reply_id": reply_id,
-                    "status": cls._reg_get(cls.STATE_KEY, cls.REG_STATE_STATUS, ""),
-                    "result_path": cls._reg_get(cls.STATE_KEY, cls.REG_STATE_RESULT_PATH, ""),
-                    "error": cls._reg_get(cls.STATE_KEY, cls.REG_STATE_ERROR, ""),
+                    "status": cls._reg_get(cls.STATE_KEY, cls.REG_S_STATUS, ""),
+                    "result_path": cls._reg_get(cls.STATE_KEY, cls.REG_S_RESULT_PATH, ""),
+                    "error": cls._reg_get(cls.STATE_KEY, cls.REG_S_ERROR, ""),
                 }
             time.sleep(cls.POLL_INTERVAL_S)
 
@@ -198,7 +198,7 @@ class InstrumentController:
         return reply
 
     def _get_result_path(self) -> str:
-        return self._reg_get(self.STATE_KEY, self.REG_STATE_RESULT_PATH, "")
+        return self._reg_get(self.STATE_KEY, self.REG_S_RESULT_PATH, "")
 
     def setup(self):
         """
@@ -347,17 +347,17 @@ class InstrumentController:
 
     def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
 
-        self.instrumentParams[self.REG_PARAM_WAVE_START] = (
-            waveStart or self.instrumentParams[self.REG_PARAM_WAVE_START]
+        self.instrumentParams[self.REG_P_WAVE_START] = (
+            waveStart or self.instrumentParams[self.REG_P_WAVE_START]
         )
-        self.instrumentParams[self.REG_PARAM_WAVE_STOP] = (
-            waveStop or self.instrumentParams[self.REG_PARAM_WAVE_STOP]
+        self.instrumentParams[self.REG_P_WAVE_STOP] = (
+            waveStop or self.instrumentParams[self.REG_P_WAVE_STOP]
         )
-        self.instrumentParams[self.REG_PARAM_SATURATION] = (
-            saturation or self.instrumentParams[self.REG_PARAM_SATURATION]
+        self.instrumentParams[self.REG_P_SATURATION] = (
+            saturation or self.instrumentParams[self.REG_P_SATURATION]
         )
-        self.instrumentParams[self.REG_PARAM_BANDWIDTH] = (
-            bandwidth or self.instrumentParams[self.REG_PARAM_BANDWIDTH]
+        self.instrumentParams[self.REG_P_BANDWIDTH] = (
+            bandwidth or self.instrumentParams[self.REG_P_BANDWIDTH]
         )
 
         reply = self._send_and_wait("SETTING", self.instrumentParams)
