@@ -30,7 +30,8 @@ class InstrumentController:
     POLL_INTERVAL_S = 0.1
     TIMEOUT_S = 10.0
 
-    def __init__(self, debug: bool = False):
+    def __init__(self, PROJECT_ROOT, debug: bool = False):
+        self.PROJECT_ROOT = PROJECT_ROOT
         if debug:
             print(
                 f"[InstrumentController][RECEIVED] __init__ payload={{'debug': {debug}}}"

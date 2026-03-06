@@ -20,7 +20,7 @@ class SystemController:
 
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def __init__(
-        self,
+        self, PROJECT_ROOT,
         server_controller_cls=ServerController,
         instrument_controller_cls=InstrumentController,
         file_dir=None,
@@ -32,12 +32,13 @@ class SystemController:
             f"instrument_controller_cls={instrument_controller_cls.__name__}, "
             f"file_dir={file_dir}, debug={debug}"
         )
+        self.PROJECT_ROOT = PROJECT_ROOT
         self.debug = bool(debug)
         sample_dir = file_dir or str(Path(__file__).parent / "sample_data")
         self.ServController = server_controller_cls(
-            file_dir=sample_dir, debug=self.debug
+            PROJECT_ROOT=self.PROJECT_ROOT, file_dir=sample_dir, debug=self.debug
         )
-        self.InstController = instrument_controller_cls(debug=self.debug)
+        self.InstController = instrument_controller_cls(PROJECT_ROOT=self.PROJECT_ROOT, debug=self.debug)
         # needed a dictionary for error codes
         self.ErrorDictionary = {
             0: "Good to go",
