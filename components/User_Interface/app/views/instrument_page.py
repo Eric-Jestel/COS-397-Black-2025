@@ -3,7 +3,8 @@ Cary 60 UV-Vis Spectrometer GUI — Instrument / Session Screen
 Chemistry Instrumentation — Jack of all Spades
 """
 
-import pyqtgraph as pg
+from app.widgets.plot import SamplePlot
+from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -278,14 +279,17 @@ class ActionPanel(Panel):
     def _on_take_sample(self):
         if not self.app:
             return
-        code, sample = self.app.controller.runLabMachine()
-        if code == 0 and sample:
-            self.app.state.sample_files.append(sample.name)
+        code, csv_path = self.app.controller.runLabMachine()
+        if code == 0 and csv_path:
+            sample_name = Path(csv_path).name
+            self.app.state.sample_files.append(csv_path)
             QMessageBox.information(
-                self, "Take Sample", f"Sample captured:\n{sample.name}"
+                self, "Take Sample", f"Sample captured:\n{sample_name}"
             )
+            # Plot the new sample on the instrument page data viewer
             if self.main_window:
-                self.main_window.go_to_setup_page()
+                data_viewer = self.main_window.pages["session"].data_viewer
+                data_viewer.add_sample_csv(sample_name, csv_path)
             return
         QMessageBox.critical(
             self,
@@ -301,63 +305,13 @@ class ActionPanel(Panel):
 
 
 # ── Panel 5 : Data viewer (plot) ──────────────────────────────────────────────
-class DataViewerPanel(Panel):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 14, 14, 14)
-        layout.setSpacing(8)
-
-        title = QLabel("Data Viewer")
-        title.setFont(QFont("Georgia", 13, QFont.Weight.Bold))
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet(
-            f"color: {TEXT_MAIN}; background: transparent; border: none;"
-        )
-        layout.addWidget(title)
-        layout.addWidget(h_rule())
-
-        pg.setConfigOptions(antialias=True, background=BG_INSET, foreground=TEXT_MAIN)
-
-        self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        self.plot_widget.setStyleSheet("border: none; border-radius: 3px;")
-        self.plot_widget.getPlotItem().showGrid(x=True, y=True, alpha=0.3)
-        self.plot_widget.setLabel("bottom", "Wavelength (nm)", color=TEXT_MAIN)
-        self.plot_widget.setLabel("left", "Absorbance (AU)", color=TEXT_MAIN)
-        self.plot_widget.setTitle("Sample Data", color=TEXT_MAIN, size="11pt")
-
-        self.plot_widget.setXRange(300, 900, padding=0)
-        self.plot_widget.setYRange(0, 1.1, padding=0)
-        self.plot_widget.setLimits(xMin=300, xMax=900, yMin=0, yMax=1.1)
-        self.plot_widget.setMouseEnabled(x=False, y=False)
-
-        axis_pen = pg.mkPen(color=BORDER, width=1)
-        for axis in ["bottom", "left", "top", "right"]:
-            self.plot_widget.getPlotItem().getAxis(axis).setPen(axis_pen)
-            self.plot_widget.getPlotItem().getAxis(axis).setTextPen(TEXT_MAIN)
-
-        self.placeholder = pg.TextItem(
-            text="No samples taken yet — use 'Take sample' to begin",
-            color=TEXT_MUTED,
-            anchor=(0.5, 0.5),
-        )
-        self.plot_widget.addItem(self.placeholder)
-        self.placeholder.setPos(0.5, 0.5)
-
-        self._curves = {}
-        layout.addWidget(self.plot_widget)
-
-    def add_sample(self, name: str, x: list, y: list):
-        """Plot a new sample curve. Removes placeholder on first sample."""
-        if not self._curves:
-            self.plot_widget.removeItem(self.placeholder)
-
-        curve = self.plot_widget.plot(x, y, name=name, pen=pg.mkPen(width=1.5))
-        self._curves[name] = curve
+class DataViewerPanel(SamplePlot):
+    """
+    Thin subclass of SamplePlot that wraps it in the same Panel styling
+    used by the rest of the instrument page.
+    All plot logic lives in SamplePlot (app/widgets/plot.py).
+    """
+    pass
 
 
 # ── Instrument Page ───────────────────────────────────────────────────────────
@@ -402,3 +356,13 @@ class InstrumentPage(QWidget):
 
         root.addLayout(top, stretch=1)
         root.addLayout(bottom, stretch=3)
+
+    def showEvent(self, event):
+        """
+        Auto-load the blank into the plot whenever this page becomes visible.
+        This ensures the reference curve is always present even if the user
+        captures or loads a blank after first navigating here.
+        """
+        super().showEvent(event)
+        if self.app and self.app.state.blank_file_path:
+            self.data_viewer.load_blank(self.app.state.blank_file_path)
