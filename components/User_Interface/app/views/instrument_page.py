@@ -1,6 +1,6 @@
 """
 Cary 60 UV-Vis Spectrometer GUI — Instrument / Session Screen
-Chemistry Instrumentation — Jack of all Spades
+Simply — Jack of all Spades
 """
 
 from app.widgets.plot import SamplePlot
@@ -18,7 +18,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-
 
 # ── Palette ──────────────────────────────────────────
 BG = "#E4E4E4"
@@ -279,7 +278,9 @@ class ActionPanel(Panel):
     def _on_take_sample(self):
         if not self.app:
             return
-        code, csv_path = self.app.controller.runLabMachine()
+        code, csv_path = (
+            self.app.controller.runLabMachine()
+        )  # CSV path is accetped as a return from runLabMachine()
         if code == 0 and csv_path:
             sample_name = Path(csv_path).name
             self.app.state.sample_files.append(csv_path)
@@ -311,6 +312,7 @@ class DataViewerPanel(SamplePlot):
     used by the rest of the instrument page.
     All plot logic lives in SamplePlot (app/widgets/plot.py).
     """
+
     pass
 
 

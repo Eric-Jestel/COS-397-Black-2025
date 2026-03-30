@@ -16,15 +16,15 @@ from PyQt6.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QMessageBox
 from PyQt6.QtCore import Qt
 
 # ── Palette (mirrors the rest of the UI) ─────────────────────────────────────
-BG         = "#E4E4E4"
-BG_INSET   = "#DCDCDC"
-BORDER     = "#CACACA"
-TEXT_MAIN  = "#484848"
+BG = "#E4E4E4"
+BG_INSET = "#DCDCDC"
+BORDER = "#CACACA"
+TEXT_MAIN = "#484848"
 TEXT_MUTED = "#909090"
 
 # Curve colours
-COLOUR_BLANK = "#606060"   # dark-grey dashed — blank / reference
-COLOUR_CYCLE = [           # sample curves, assigned in order
+COLOUR_BLANK = "#606060"  # dark-grey dashed — blank / reference
+COLOUR_CYCLE = [  # sample curves, assigned in order
     "#4A90D9",  # blue
     "#E07040",  # orange
     "#50A060",  # green
@@ -74,14 +74,16 @@ class SpectrumPlotWidget(QFrame):
         pi.showGrid(x=True, y=True, alpha=0.3)
 
         self.plot_widget.setLabel("bottom", x_label, color=TEXT_MAIN)
-        self.plot_widget.setLabel("left",   y_label, color=TEXT_MAIN)
+        self.plot_widget.setLabel("left", y_label, color=TEXT_MAIN)
         self.plot_widget.setTitle(title, color=TEXT_MAIN, size="11pt")
 
         self.plot_widget.setXRange(*x_range, padding=0)
         self.plot_widget.setYRange(*y_range, padding=0)
         self.plot_widget.setLimits(
-            xMin=x_range[0], xMax=x_range[1],
-            yMin=y_range[0], yMax=y_range[1],
+            xMin=x_range[0],
+            xMax=x_range[1],
+            yMin=y_range[0],
+            yMax=y_range[1],
         )
         self.plot_widget.setMouseEnabled(x=False, y=False)
 
@@ -133,7 +135,7 @@ class SpectrumPlotWidget(QFrame):
                     x.append(float(first[0]))
                     y.append(float(first[1]))
                 except (ValueError, IndexError):
-                    header = first          # first row is a text header
+                    header = first  # first row is a text header
             for row in reader:
                 if len(row) < 2:
                     continue
@@ -177,14 +179,15 @@ class BlankPlot(SpectrumPlotWidget):
             self.plot_widget.removeItem(self._curve)
 
         self._curve = self.plot_widget.plot(
-            x, y,
+            x,
+            y,
             pen=pg.mkPen(color=COLOUR_BLANK, width=1.5),
         )
 
         # Use CSV header as axis labels if present
         if header and len(header) >= 2:
             self.plot_widget.setLabel("bottom", header[0], color=TEXT_MAIN)
-            self.plot_widget.setLabel("left",   header[1], color=TEXT_MAIN)
+            self.plot_widget.setLabel("left", header[1], color=TEXT_MAIN)
 
     def clear_plot(self):
         """Remove curve and restore placeholder."""
@@ -244,7 +247,8 @@ class SamplePlot(SpectrumPlotWidget):
             self.plot_widget.removeItem(self._blank_curve)
 
         self._blank_curve = self.plot_widget.plot(
-            x, y,
+            x,
+            y,
             name="Blank",
             pen=pg.mkPen(
                 color=COLOUR_BLANK,
@@ -277,7 +281,8 @@ class SamplePlot(SpectrumPlotWidget):
             self.plot_widget.removeItem(self._sample_curves[name])
 
         curve = self.plot_widget.plot(
-            x, y,
+            x,
+            y,
             name=name,
             pen=pg.mkPen(color=self._next_colour(), width=1.5),
         )

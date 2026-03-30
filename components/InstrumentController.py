@@ -41,7 +41,9 @@ class InstrumentController:
     REG_S_FILE_COUNTER = "FileCounter"
 
     ADL_FILE = r".\components\MailboxCheck.adl"
-    SCAN_FOLDER = "C:\\Users\\Agilent Cary 60\\Documents\\SoftwareDev - dont delete\\Scans\\"
+    SCAN_FOLDER = (
+        "C:\\Users\\Agilent Cary 60\\Documents\\SoftwareDev - dont delete\\Scans\\"
+    )
     POLL_INTERVAL_S = 0.1
     TIMEOUT_S = 10.0
 
@@ -157,7 +159,9 @@ class InstrumentController:
                 return {
                     "reply_id": reply_id,
                     "status": cls._reg_get(cls.STATE_KEY, cls.REG_S_STATUS, ""),
-                    "result_path": cls._reg_get(cls.STATE_KEY, cls.REG_S_RESULT_PATH, ""),
+                    "result_path": cls._reg_get(
+                        cls.STATE_KEY, cls.REG_S_RESULT_PATH, ""
+                    ),
                     "error": cls._reg_get(cls.STATE_KEY, cls.REG_S_ERROR, ""),
                 }
             time.sleep(cls.POLL_INTERVAL_S)

@@ -2,7 +2,6 @@
 LabeledValue widget — PyQt6
 Chemistry Instrumentation — Jack of all Spades
 
-Replaces the old Tkinter LabeledValue stub.
 A small stacked label/value pair used in status panels.
 """
 
@@ -10,7 +9,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtGui import QFont
 from PyQt6.QtCore import Qt
 
-TEXT_MAIN  = "#484848"
+TEXT_MAIN = "#484848"
 TEXT_MUTED = "#909090"
 
 

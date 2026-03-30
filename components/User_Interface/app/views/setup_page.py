@@ -264,8 +264,8 @@ class StatusPanel(Panel):
 
         self.server_sub = ConnectionSubPanel(
             "ICN Server Information",
-            "Click Button to reconnect to server\n" \
-            "If connection cannot be established visit:\n" \
+            "Click Button to reconnect to server\n"
+            "If connection cannot be established visit:\n"
             "https://example.com/support",
             reconnect_cmd=self._on_reconnect_server,
         )
@@ -328,13 +328,17 @@ class ActionPanel(Panel):
     def _on_capture_blank(self):
         if not self.app:
             return
-        code, blank_path = self.app.controller.takeBlank()
+        code, blank_path = (
+            self.app.controller.takeBlank()
+        )  # Blank is captured from takeBlank() return
         if code == 0:
             self.app.state.blank_file_path = blank_path
             QMessageBox.information(
                 self, "Capture Blank", f"Blank captured:\n{blank_path}"
             )
-            self.plot_panel.load_csv(blank_path)
+            self.plot_panel.load_csv(
+                blank_path
+            )  # Plot the csv returned from takeBlank()
         else:
             QMessageBox.critical(
                 self,
@@ -344,7 +348,10 @@ class ActionPanel(Panel):
 
     def _on_load_blank(self):
         filepath, _ = QFileDialog.getOpenFileName(
-            self, "Load Blank Spectrum", "", "CSV Files (*.csv);;All Files (*)"
+            self,
+            "Load Blank Spectrum",
+            "",
+            "CSV Files (*.csv);;All Files (*)",  # Get filepath for blank
         )
         if not filepath:
             return
@@ -352,7 +359,10 @@ class ActionPanel(Panel):
         if self.app:
             code = self.app.controller.setBlank(filepath)
             if code == 0:
-                self.app.state.blank_file_path = filepath
+                self.app.state.blank_file_path = (
+                    filepath  # Set the filepath to plot blank
+                )
+                self.plot_panel.load_csv(filepath)
                 QMessageBox.information(
                     self, "Load Blank", f"Loaded blank file:\n{filepath}"
                 )
@@ -364,9 +374,6 @@ class ActionPanel(Panel):
                         code, f"Error code: {code}"
                     ),
                 )
-
-        # Always plot the file regardless of controller result
-        self.plot_panel.load_csv(filepath)
 
     def _on_reset_blank(self):
         if not self.app:
