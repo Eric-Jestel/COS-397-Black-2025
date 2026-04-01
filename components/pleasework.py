@@ -73,7 +73,6 @@ class InstrumentControllerOpus:
 
         print("Taking Sample...")
         sample_path = self.opus.measure_sample(unload=True, **self.sampleSettings)
-        #print(self.opus.read_opus(sample_path))
         print("Saved sample to:", str(sample_path))
         """"""
         if save_path is not None:
