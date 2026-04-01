@@ -38,7 +38,7 @@ class ServerController:
         self.UUID = 0
         self.UUID_expiry = 0
 
-        self.file_dir = PROJECT_ROOT+r"\scans"
+        self.file_dir = PROJECT_ROOT + r"\scans"
         print("[ServerController][DEBUG] Set file_dir to: " + self.file_dir)
         print("[ServerController][EXECUTED] __init__ result=initialized")
 

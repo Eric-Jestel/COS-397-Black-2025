@@ -20,7 +20,8 @@ class SystemController:
 
     # ------------------------------------------------------------------------------------------------------------------------------------------
     def __init__(
-        self, PROJECT_ROOT,
+        self,
+        PROJECT_ROOT,
         server_controller_cls=ServerController,
         instrument_controller_cls=InstrumentController,
         file_dir=None,
@@ -38,7 +39,9 @@ class SystemController:
         self.ServController = server_controller_cls(
             self.PROJECT_ROOT, file_dir=sample_dir, debug=self.debug
         )
-        self.InstController = instrument_controller_cls(PROJECT_ROOT=self.PROJECT_ROOT, debug=self.debug)
+        self.InstController = instrument_controller_cls(
+            PROJECT_ROOT=self.PROJECT_ROOT, debug=self.debug
+        )
         # needed a dictionary for error codes
         self.ErrorDictionary = {
             0: "Good to go",
@@ -192,7 +195,7 @@ class SystemController:
                             self._debug(f"runLabMachine() failed to send {fileSent[0]}")
                         if fileSent[0] == csv_path:
                             self._print_executed("runLabMachine", (0, csv_path))
-                            return 000, csv_path
+                            return 000, csv_path  # CSV is returned for graphing
                     self._print_executed("runLabMachine", (110, None))
                     return 110, None
                 else:
