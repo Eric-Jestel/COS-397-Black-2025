@@ -3,14 +3,7 @@ Cary 60 UV-Vis Spectrometer GUI — Setup / Blank Screen
 Chemistry Instrumentation — Jack of all Spades
 """
 
-import csv
-from datetime import datetime
-from pathlib import Path
-
-import pyqtgraph as pg
 from PyQt6.QtWidgets import (
-    # QApplication,
-    # QMainWindow,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -24,6 +17,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+
+from app.widgets.plot import BlankPlot
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 BG = "#E4E4E4"
@@ -269,8 +264,8 @@ class StatusPanel(Panel):
 
         self.server_sub = ConnectionSubPanel(
             "ICN Server Information",
-            "Click Button to reconnect to server\n" \
-            "If connection cannot be established visit:\n" \
+            "Click Button to reconnect to server\n"
+            "If connection cannot be established visit:\n"
             "https://example.com/support",
             reconnect_cmd=self._on_reconnect_server,
         )
@@ -333,16 +328,17 @@ class ActionPanel(Panel):
     def _on_capture_blank(self):
         if not self.app:
             return
-        target = (
-            Path(self.app.controller.ServController.file_dir)
-            / f"blank_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        )
-        code, blank_path = self.app.controller.takeBlank(str(target))
+        code, blank_path = (
+            self.app.controller.takeBlank()
+        )  # Blank is captured from takeBlank() return
         if code == 0:
             self.app.state.blank_file_path = blank_path
             QMessageBox.information(
                 self, "Capture Blank", f"Blank captured:\n{blank_path}"
             )
+            self.plot_panel.load_csv(
+                blank_path
+            )  # Plot the csv returned from takeBlank()
         else:
             QMessageBox.critical(
                 self,
@@ -352,7 +348,10 @@ class ActionPanel(Panel):
 
     def _on_load_blank(self):
         filepath, _ = QFileDialog.getOpenFileName(
-            self, "Load Blank Spectrum", "", "CSV Files (*.csv);;All Files (*)"
+            self,
+            "Load Blank Spectrum",
+            "",
+            "CSV Files (*.csv);;All Files (*)",  # Get filepath for blank
         )
         if not filepath:
             return
@@ -360,7 +359,10 @@ class ActionPanel(Panel):
         if self.app:
             code = self.app.controller.setBlank(filepath)
             if code == 0:
-                self.app.state.blank_file_path = filepath
+                self.app.state.blank_file_path = (
+                    filepath  # Set the filepath to plot blank
+                )
+                self.plot_panel.load_csv(filepath)
                 QMessageBox.information(
                     self, "Load Blank", f"Loaded blank file:\n{filepath}"
                 )
@@ -372,9 +374,6 @@ class ActionPanel(Panel):
                         code, f"Error code: {code}"
                     ),
                 )
-
-        # Always plot the file regardless of controller result
-        self.plot_panel.load_csv(filepath)
 
     def _on_reset_blank(self):
         if not self.app:
@@ -415,87 +414,9 @@ class ActionPanel(Panel):
 
 
 # ── Panel 4 : Plot ────────────────────────────────────────────────────────────
-class PlotPanel(Panel):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(14, 14, 14, 14)
-
-        pg.setConfigOptions(antialias=True, background=BG_INSET, foreground=TEXT_MAIN)
-
-        self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        self.plot_widget.setStyleSheet("border: none; border-radius: 3px;")
-        self.plot_widget.getPlotItem().showGrid(x=True, y=True, alpha=0.3)
-        self.plot_widget.setLabel("bottom", "Wavelength (nm)", color=TEXT_MAIN)
-        self.plot_widget.setLabel("left", "Absorbance (AU)", color=TEXT_MAIN)
-        self.plot_widget.setTitle("Blank Spectrum", color=TEXT_MAIN, size="11pt")
-
-        self.plot_widget.setXRange(300, 900, padding=0)
-        self.plot_widget.setYRange(0, 1.1, padding=0)
-        self.plot_widget.setLimits(xMin=300, xMax=900, yMin=0, yMax=1.1)
-        self.plot_widget.setMouseEnabled(x=False, y=False)
-
-        axis_pen = pg.mkPen(color=BORDER, width=1)
-        for axis in ["bottom", "left", "top", "right"]:
-            self.plot_widget.getPlotItem().getAxis(axis).setPen(axis_pen)
-            self.plot_widget.getPlotItem().getAxis(axis).setTextPen(TEXT_MAIN)
-
-        self.placeholder = pg.TextItem(
-            text="No data loaded — use 'Load Blank from File' or 'Capture Blank'",
-            color=TEXT_MUTED,
-            anchor=(0.5, 0.5),
-        )
-        self.plot_widget.addItem(self.placeholder)
-        self.placeholder.setPos(0.5, 0.5)
-
-        self._curve = None
-        outer.addWidget(self.plot_widget)
-
-    def load_csv(self, filepath: str):
-        """Read a two-column CSV (wavelength, absorbance) and plot it."""
-        x, y = [], []
-        try:
-            with open(filepath, newline="") as f:
-                reader = csv.reader(f)
-                header = next(reader, None)
-                for row in reader:
-                    if len(row) < 2:
-                        continue
-                    try:
-                        x.append(float(row[0]))
-                        y.append(float(row[1]))
-                    except ValueError:
-                        continue
-
-            if not x:
-                raise ValueError("No numeric data found in file.")
-
-            self.plot_widget.removeItem(self.placeholder)
-
-            if self._curve is not None:
-                self.plot_widget.removeItem(self._curve)
-
-            self._curve = self.plot_widget.plot(
-                x, y, pen=pg.mkPen(color=TEXT_MAIN, width=1.5)
-            )
-
-            if header and len(header) >= 2:
-                self.plot_widget.setLabel("bottom", header[0], color=TEXT_MAIN)
-                self.plot_widget.setLabel("left", header[1], color=TEXT_MAIN)
-
-        except Exception as e:
-            QMessageBox.warning(self, "Load Error", f"Could not load spectrum:\n{e}")
-
-    def clear_plot(self):
-        """Remove current curve and restore placeholder."""
-        if self._curve is not None:
-            self.plot_widget.removeItem(self._curve)
-            self._curve = None
-        self.plot_widget.addItem(self.placeholder)
-        self.placeholder.setPos(0.5, 0.5)
+# BlankPlot is imported from app.widgets.plot — it wraps a pyqtgraph PlotWidget
+# and exposes load_csv() and clear_plot() exactly as the old inline class did.
+PlotPanel = BlankPlot
 
 
 # ── Setup Page ────────────────────────────────────────────────────────────────

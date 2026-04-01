@@ -38,7 +38,7 @@ class ServerController:
         self.UUID = 0
         self.UUID_expiry = 0
 
-        self.file_dir = PROJECT_ROOT+r"\scans"
+        self.file_dir = PROJECT_ROOT + r"\scans"
         print("[ServerController][DEBUG] Set file_dir to: " + self.file_dir)
         print("[ServerController][EXECUTED] __init__ result=initialized")
 
@@ -313,6 +313,11 @@ class ServerController:
             "dataKey": data_key,
             "dataArray": dataArray,
         }
+
+        with open("debug_payload.json", "w") as debug_file:
+            json.dump(json_input, debug_file)
+            print(url_input)
+            print(json_input)
 
         response = requests.post(url_input, json=json_input, timeout=10)
         payload = response.json()
