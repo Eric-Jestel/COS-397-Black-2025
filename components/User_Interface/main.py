@@ -1,6 +1,7 @@
-from app.app import PrototypeApp
+from app.app import App
 from pathlib import Path
 import os
+import sys
 
 
 def main():
@@ -9,7 +10,7 @@ def main():
         PROJECT_ROOT = r"C:\Users\Agilent Cary 60\Documents\SoftwareDev - dont delete\COS-397-Black-2025"
     # TODO: Ensure the existence of config and folders
     print(f"Project root: {PROJECT_ROOT}")
-    app = PrototypeApp(PROJECT_ROOT)
+    app = App(PROJECT_ROOT)
     app.run()
 
 
