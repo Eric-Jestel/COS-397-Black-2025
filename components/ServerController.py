@@ -270,16 +270,18 @@ class ServerController:
             Boolean: True if it successful send all unsent data
         """
 
-        filename_split = Path(samplePath).stem.split("_")
-
-        if len(filename_split) < 3:
+        stem = Path(samplePath).stem
+        parts = stem.rsplit("_", 2)
+        if len(parts) != 3:
             self._debug(f"send_data() invalid filename format: {samplePath}")
             self._print_executed("send_data", False)
             return False
 
-        username = filename_split[0]
-
-        data_key = filename_split[1]
+        username, data_key, status = parts
+        if status.lower() != "unsent":
+            self._debug(f"send_data() expected unsent file, got: {samplePath}")
+            self._print_executed("send_data", False)
+            return False
 
         self._print_received("send_data", {"samplePath": str(samplePath)})
         # ensure logged in as file owner and session valid
@@ -328,8 +330,7 @@ class ServerController:
 
         if payload.get("success"):
             rename_to_sent = Path(samplePath).with_name(
-                Path(samplePath).stem.replace("unsent", "sent")
-                + Path(samplePath).suffix
+                f"{username}_{data_key}_sent{Path(samplePath).suffix}"
             )
             Path(samplePath).rename(rename_to_sent)
             return True
@@ -347,8 +348,14 @@ class ServerController:
             boolean: True if the file was successfully parsed, False if not
         """
 
-        filename_datetime = Path(filepath).stem
-        filename_username = self.user
+        input_stem = Path(filepath).stem
+        input_parts = input_stem.split("_", 1)
+        if len(input_parts) != 2:
+            self._debug(f"parse_csv() invalid filename format: {filepath}")
+            self._print_executed("parse_csv", False)
+            return False
+
+        filename_username, filename_datetime = input_parts
         filename_suffix = "_unsent.json"
 
         out_path = (
@@ -372,3 +379,24 @@ class ServerController:
             f.write("]")
 
         return True
+
+
+
+test_controller = ServerController(PROJECT_ROOT=".", debug=True)
+
+print(test_controller.connect())
+
+print(test_controller.login("testuser"))
+
+print(test_controller.is_logged_in())
+
+print(test_controller.send_all_data())
+
+test_csv = (
+    Path(__file__).resolve().parents[1]
+    / "scans"
+    / "testuser_2025-01-01T12-00-01.csv"
+)
+print(test_controller.parse_csv(str(test_csv)))
+
+print(test_controller.send_all_data())
