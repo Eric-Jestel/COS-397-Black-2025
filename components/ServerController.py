@@ -348,14 +348,15 @@ class ServerController:
             boolean: True if the file was successfully parsed, False if not
         """
 
-        input_stem = Path(filepath).stem
-        input_parts = input_stem.split("_", 1)
-        if len(input_parts) != 2:
-            self._debug(f"parse_csv() invalid filename format: {filepath}")
+        self._print_received("parse_csv", {"filepath": str(filepath), "user": self.user})
+
+        if not self.user:
+            self._debug("parse_csv() rejected: no logged-in user")
             self._print_executed("parse_csv", False)
             return False
 
-        filename_username, filename_datetime = input_parts
+        filename_username = self.user
+        filename_datetime = Path(filepath).stem
         filename_suffix = "_unsent.json"
 
         out_path = (
@@ -378,25 +379,6 @@ class ServerController:
                 )
             f.write("]")
 
+        self._print_executed("parse_csv", {"out_path": str(out_path)})
         return True
 
-
-
-test_controller = ServerController(PROJECT_ROOT=".", debug=True)
-
-print(test_controller.connect())
-
-print(test_controller.login("testuser"))
-
-print(test_controller.is_logged_in())
-
-print(test_controller.send_all_data())
-
-test_csv = (
-    Path(__file__).resolve().parents[1]
-    / "scans"
-    / "testuser_2025-01-01T12-00-01.csv"
-)
-print(test_controller.parse_csv(str(test_csv)))
-
-print(test_controller.send_all_data())
