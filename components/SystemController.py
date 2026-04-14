@@ -177,7 +177,7 @@ class SystemController:
         if self._instrument_ready():
             # sends instructions to machine to run test
             self._print_received("InstrumentController.take_sample")
-            targetFilename = datetime.now().strftime("%Y%m%d_%H%M%SZ") + ".csv"
+            targetFilename = datetime.now().strftime("%Y%m%d-%H%M%SZ") + ".csv"
             csv_path = self.InstController.take_sample(targetFilename)
             self._print_executed("InstrumentController.take_sample", csv_path)
             self._debug(f"runLabMachine() sample received={bool(csv_path)}")
@@ -190,12 +190,22 @@ class SystemController:
                     sent = self.ServController.send_all_data()
                     self._print_executed("ServerController.send_all_data", sent)
                     self._debug(f"runLabMachine() send_all_data -> {sent}")
+                    expected_name = None
+                    if self.ServController.user and csv_path:
+                        expected_name = (
+                            f"{self.ServController.user}_"
+                            f"{Path(csv_path).stem}_unsent.json"
+                        )
+
                     for fileSent in sent:
                         if fileSent[1] is False:
                             self._debug(f"runLabMachine() failed to send {fileSent[0]}")
-                        if fileSent[0] == csv_path:
-                            self._print_executed("runLabMachine", (0, csv_path))
-                            return 000, csv_path  # CSV is returned for graphing
+
+                    if expected_name and any(
+                        filename == expected_name and ok for filename, ok in sent
+                    ):
+                        self._print_executed("runLabMachine", (0, csv_path))
+                        return 000, csv_path  # CSV is returned for graphing
                     self._print_executed("runLabMachine", (110, None))
                     return 110, None
                 else:

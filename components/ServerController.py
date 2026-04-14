@@ -270,16 +270,18 @@ class ServerController:
             Boolean: True if it successful send all unsent data
         """
 
-        filename_split = Path(samplePath).stem.split("_")
-
-        if len(filename_split) < 3:
+        stem = Path(samplePath).stem
+        parts = stem.rsplit("_", 2)
+        if len(parts) != 3:
             self._debug(f"send_data() invalid filename format: {samplePath}")
             self._print_executed("send_data", False)
             return False
 
-        username = filename_split[0]
-
-        data_key = filename_split[1]
+        username, data_key, status = parts
+        if status.lower() != "unsent":
+            self._debug(f"send_data() expected unsent file, got: {samplePath}")
+            self._print_executed("send_data", False)
+            return False
 
         self._print_received("send_data", {"samplePath": str(samplePath)})
         # ensure logged in as file owner and session valid
@@ -328,8 +330,7 @@ class ServerController:
 
         if payload.get("success"):
             rename_to_sent = Path(samplePath).with_name(
-                Path(samplePath).stem.replace("unsent", "sent")
-                + Path(samplePath).suffix
+                f"{username}_{data_key}_sent{Path(samplePath).suffix}"
             )
             Path(samplePath).rename(rename_to_sent)
             return True
@@ -347,8 +348,15 @@ class ServerController:
             boolean: True if the file was successfully parsed, False if not
         """
 
-        filename_datetime = Path(filepath).stem
+        self._print_received("parse_csv", {"filepath": str(filepath), "user": self.user})
+
+        if not self.user:
+            self._debug("parse_csv() rejected: no logged-in user")
+            self._print_executed("parse_csv", False)
+            return False
+
         filename_username = self.user
+        filename_datetime = Path(filepath).stem
         filename_suffix = "_unsent.json"
 
         out_path = (
@@ -371,4 +379,6 @@ class ServerController:
                 )
             f.write("]")
 
+        self._print_executed("parse_csv", {"out_path": str(out_path)})
         return True
+
