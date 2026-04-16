@@ -41,7 +41,9 @@ class InstrumentController:
     REG_S_FILE_COUNTER = "FileCounter"
 
     ADL_FILE = r".\components\MailboxCheck.adl"
-    SCAN_FOLDER = "C:\\Users\\Agilent Cary 60\\Documents\\SoftwareDev - dont delete\\Scans\\"
+    SCAN_FOLDER = (
+        "C:\\Users\\Agilent Cary 60\\Documents\\SoftwareDev - dont delete\\Scans\\"
+    )
     POLL_INTERVAL_S = 0.1
     TIMEOUT_S = 10.0
 
@@ -157,7 +159,9 @@ class InstrumentController:
                 return {
                     "reply_id": reply_id,
                     "status": cls._reg_get(cls.STATE_KEY, cls.REG_S_STATUS, ""),
-                    "result_path": cls._reg_get(cls.STATE_KEY, cls.REG_S_RESULT_PATH, ""),
+                    "result_path": cls._reg_get(
+                        cls.STATE_KEY, cls.REG_S_RESULT_PATH, ""
+                    ),
                     "error": cls._reg_get(cls.STATE_KEY, cls.REG_S_ERROR, ""),
                 }
             time.sleep(cls.POLL_INTERVAL_S)
@@ -200,6 +204,52 @@ class InstrumentController:
 
     def _get_result_path(self) -> str:
         return self._reg_get(self.STATE_KEY, self.REG_S_RESULT_PATH, "")
+
+    def _resolve_existing_output_path(
+        self,
+        requested_path: Path,
+        reply_path: str,
+        started_at: float,
+        wait_s: float = 8.0,
+    ) -> str:
+        deadline = time.time() + wait_s
+
+        while time.time() < deadline:
+            candidates = []
+
+            if reply_path:
+                rp = Path(reply_path)
+                candidates.append(rp)
+                if not rp.is_absolute():
+                    candidates.append(Path(self.PROJECT_ROOT) / rp)
+                    candidates.append(Path(self.SCAN_FOLDER) / rp.name)
+
+            candidates.append(requested_path)
+            candidates.append(Path(self.SCAN_FOLDER) / requested_path.name)
+
+            seen = set()
+            for candidate in candidates:
+                c = str(candidate)
+                if c in seen:
+                    continue
+                seen.add(c)
+                if candidate.exists():
+                    return str(candidate)
+
+            scan_dir = Path(self.SCAN_FOLDER)
+            if scan_dir.exists():
+                recent_csv = [
+                    p
+                    for p in scan_dir.glob("*.csv")
+                    if p.is_file() and p.stat().st_mtime >= (started_at - 2.0)
+                ]
+                if recent_csv:
+                    newest = max(recent_csv, key=lambda p: p.stat().st_mtime)
+                    return str(newest)
+
+            time.sleep(0.2)
+
+        return ""
 
     def setup(self):
         """
@@ -253,18 +303,38 @@ class InstrumentController:
         self._print_received("take_blank", {"filename": filename})
         self._debug(f"take_blank() requested filename={filename}")
 
+        started_at = time.time()
         out_target = Path(filename)
         out_target.parent.mkdir(parents=True, exist_ok=True)
         # out_base = out_target.with_suffix("")
 
         params = {
-            self.REG_PARAM_FILENAME: filename,
+            self.REG_P_FILENAME: filename,
         }
         reply = self._send_and_wait("BLANK", params)
         if self._is_success(reply):
             print("Blank scan successful, result path:", reply.get("result_path"))
 
-            self.blank_file = reply.get("result_path") or str(out_target)
+            resolved_blank = self._resolve_existing_output_path(
+                out_target, str(reply.get("result_path", "")).strip(), started_at
+            )
+            if not resolved_blank:
+                self._debug(
+                    "take_blank() bridge reported success but no CSV file was found"
+                )
+                self.blank_file = ""
+                self._print_executed(
+                    "take_blank",
+                    {
+                        "success": True,
+                        "warning": "No CSV output found",
+                        "requested": str(out_target),
+                        "reply": reply,
+                    },
+                )
+                return True
+
+            self.blank_file = resolved_blank
 
             self._debug(f"take_blank() success blank_file={self.blank_file}")
             self._print_executed(

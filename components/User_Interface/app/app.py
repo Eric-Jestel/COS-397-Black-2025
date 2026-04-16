@@ -9,23 +9,18 @@ from app.config import APP_TITLE, WINDOW_MIN_SIZE
 from app.state import UIState
 from app.views.setup_page import SetupPage
 from app.views.instrument_page import InstrumentPage
-
-try:
-    from components.SystemController import SystemController
-except ImportError:
-    PROJECT_ROOT = Path(__file__).resolve().parents[3]
-    if str(PROJECT_ROOT) not in sys.path:
-        sys.path.append(str(PROJECT_ROOT))
-    from components.SystemController import SystemController
+from components.SystemController import SystemController
 
 
-class PrototypeApp:
+class App:
     def __init__(self, PROJECT_ROOT):
         self.PROJECT_ROOT = PROJECT_ROOT
         self.qt_app = QApplication.instance() or QApplication(sys.argv)
 
         self.state = UIState()
-        self.controller = SystemController(debug=self.state.debug_mode, PROJECT_ROOT=self.PROJECT_ROOT)
+        self.controller = SystemController(
+            debug=self.state.debug_mode, PROJECT_ROOT=self.PROJECT_ROOT
+        )
 
         startup_code = self.controller.startUp()
         self.state.instrument_connected = startup_code != 100

@@ -1,14 +1,61 @@
-from tkinter import ttk
+"""
+LabeledValue widget — PyQt6
+Chemistry Instrumentation — Jack of all Spades
+
+A small stacked label/value pair used in status panels.
+"""
+
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt
+
+TEXT_MAIN = "#484848"
+TEXT_MUTED = "#909090"
 
 
-class LabeledValue(ttk.Frame):
-    def __init__(self, parent, label: str, value: str = "-"):
+class LabeledValue(QWidget):
+    """
+    Displays a small descriptor label above a larger bold value.
+
+    Usage
+    -----
+        lv = LabeledValue("Server Status", "OK")
+        lv.set("Disconnected")
+    """
+
+    def __init__(self, label: str, value: str = "—", parent=None):
         super().__init__(parent)
-        self._label = ttk.Label(self, text=label)
-        self._value = ttk.Label(self, text=value, font=("TkDefaultFont", 10, "bold"))
+        self.setStyleSheet("background: transparent;")
 
-        self._label.grid(row=0, column=0, sticky="w")
-        self._value.grid(row=1, column=0, sticky="w")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+
+        self._label_widget = QLabel(label)
+        self._label_widget.setFont(QFont("Helvetica Neue", 9))
+        self._label_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._label_widget.setStyleSheet(
+            f"color: {TEXT_MUTED}; background: transparent; border: none;"
+        )
+
+        self._value_widget = QLabel(value)
+        self._value_widget.setFont(QFont("Helvetica Neue", 10, QFont.Weight.Bold))
+        self._value_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self._value_widget.setStyleSheet(
+            f"color: {TEXT_MAIN}; background: transparent; border: none;"
+        )
+
+        layout.addWidget(self._label_widget)
+        layout.addWidget(self._value_widget)
 
     def set(self, value: str):
-        self._value.configure(text=value)
+        """Update the displayed value."""
+        self._value_widget.setText(value)
+
+    def set_ok(self, value: str, ok: bool = True):
+        """Update value and colour it green/red based on ok flag."""
+        self._value_widget.setText(value)
+        colour = "#50A060" if ok else "#B04040"
+        self._value_widget.setStyleSheet(
+            f"color: {colour}; background: transparent; border: none;"
+        )
