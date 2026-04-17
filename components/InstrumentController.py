@@ -47,7 +47,8 @@ class InstrumentController:
     )
     POLL_INTERVAL_S = 0.1
     TIMEOUT_S = 10.0
-    TIMEOUT_MULTIPLIER = 1.1
+    TIMEOUT_MULTIPLIER = 1.25
+    TIMEOUT_CONTANT = 5
 
     WAVE_MIN = 190
     WAVE_MAX = 1100
@@ -342,7 +343,8 @@ class InstrumentController:
         out_target.parent.mkdir(parents=True, exist_ok=True)
 
         params = {self.REG_P_FILENAME: filename}
-        reply = self._send_and_wait("BLANK", params, timeout_s=self.getBlankTime()*self.TIMEOUT_MULTIPLIER)
+        reply = self._send_and_wait("BLANK", params,
+                                    timeout_s=self.getBlankTime() * self.TIMEOUT_MULTIPLIER + self.TIMEOUT_CONTANT)
 
         if not self._is_success(reply):
             self._debug(f"take_blank() failed reply={reply}")
@@ -402,7 +404,8 @@ class InstrumentController:
 
         self._debug(f"take_sample() params={params}")
 
-        reply = self._send_and_wait("SCAN", params)
+        reply = self._send_and_wait("SCAN", params,
+                                    timeout_s=self.getScanTime() * self.TIMEOUT_MULTIPLIER + self.TIMEOUT_CONTANT)
 
         if not self._is_success(reply):
             self._debug(f"take_sample() failed reply={reply}")
