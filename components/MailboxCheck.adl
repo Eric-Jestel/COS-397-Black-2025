@@ -74,7 +74,7 @@ Sub Main
   NewCtm(ctmName$)
   ClearCtm(ctmName$)
 
-  Settings(bandwidth#, satuation#, wavelengthStart#, wavelengthStop#)
+  Settings(bandwidth#, saturation#, wavelengthStart#, wavelengthStop#)
 
   Do
     DoEvents
@@ -135,11 +135,11 @@ Sub Main
           wavelengthStart# = defaultWavelengthStart#
           wavelengthStop# = defaultWavelengthStop#
 
-          NewCtm$ = ctmBase & "-" & wavelengthStart & "-" & wavelengthStop & "-" & satuation
-          ChangeCtmName(ctmName$, NewCtm$)
-          ctmName$ = NewCtm$
+          ctmNew$ = ctmBase & "-" & wavelengthStart & "-" & wavelengthStop & "-" & saturation
+          ChangeCtmName(ctmName$, ctmNew$)
+          ctmName$ = ctmNew$
 
-          Settings(bandwidth#, satuation#, wavelengthStart#, wavelengthStop#)
+          Settings(bandwidth#, saturation#, wavelengthStart#, wavelengthStop#)
           status$ = "IDLE"
 
         Case "RESET"
@@ -148,7 +148,7 @@ Sub Main
           wavelengthStart# = defaultWavelengthStart#
           wavelengthStop# = defaultWavelengthStop#
 
-          Settings(bandwidth#, satuation#, wavelengthStart#, wavelengthStop#)
+          Settings(bandwidth#, saturation#, wavelengthStart#, wavelengthStop#)
           status$ = "IDLE"
 
         Case "PING"
@@ -166,13 +166,13 @@ Sub Main
           filename$ = CStr(RegRead(HKEY_CURRENT_USER, ROOT$, "Param", "Filename"))
           
           'sets wavelength to the maximum so a blank will always scan the entire spectrum
-          Settings(bandwidth#, satuation#, 1100, 190) 
-          ctmBlank$ = ctmBase & "_Blank-1100-190-" & satuation
+          Settings(bandwidth#, saturation#, 1100, 190) 
+          ctmBlank$ = ctmBase & "_Blank-1100-190-" & saturation
           ChangeCtmName(ctmName, ctmBlank)
 
           Scan(ctmBlank$, folder & filename)
 
-          Settings(bandwidth#, satuation#, wavelengthStart#, wavelengthStop#) 'resets settings
+          Settings(bandwidth#, saturation#, wavelengthStart#, wavelengthStop#) 'resets settings
           ChangeCtmName(ctmBlank, ctmName)
 
           RegWrite(HKEY_CURRENT_USER, ROOT$, "State", "ResultPath", folder & filename)
