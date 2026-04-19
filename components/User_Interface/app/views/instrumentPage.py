@@ -212,9 +212,8 @@ class LoginPanel(Panel):
 
 # ── Panel 2 : Instructions ────────────────────────────────────────────────────
 class InstructionsPanel(Panel):
-    def __init__(self, explanation_panel: "ExplanationPanel", parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.explanation_panel = explanation_panel
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -230,6 +229,13 @@ class InstructionsPanel(Panel):
         layout.addWidget(h_rule())
         layout.addSpacing(4)
 
+        # Step buttons + explanation side by side
+        body = QHBoxLayout()
+        body.setSpacing(10)
+
+        steps_col = QVBoxLayout()
+        steps_col.setSpacing(8)
+
         steps = [
             ("Step 1: Login", 1),
             ("Step 2: Load Sample", 2),
@@ -239,21 +245,11 @@ class InstructionsPanel(Panel):
         for label, step_num in steps:
             btn = StyledButton(label)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            btn.clicked.connect(
-                lambda _, n=step_num: self.explanation_panel.set_step(n)
-            )
-            layout.addWidget(btn)
+            btn.clicked.connect(lambda _, n=step_num: self._set_step(n))
+            steps_col.addWidget(btn)
 
-        layout.addStretch()
-
-
-# ── Panel 3 : Explanation ─────────────────────────────────────────────────────
-class ExplanationPanel(Panel):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        steps_col.addStretch()
+        body.addLayout(steps_col, stretch=2)
 
         inset = InsetBox()
         inset.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -266,18 +262,17 @@ class ExplanationPanel(Panel):
             f"color: {TEXT_MUTED}; background: transparent; border: none;"
         )
         inset.layout().addWidget(self.expl_label)
+        body.addWidget(inset, stretch=3)
 
-        layout.addWidget(inset)
+        layout.addLayout(body)
 
-    def set_step(self, step: int):
+    def _set_step(self, step: int):
         explanations = {
             1: "Log in by entering your ICN username.",
             2: "Place your sample in the instrument. Ensure the sample holder is clean and properly positioned. The smooth side of Cuvette should be facing the camera.",
             3: "Press Capture to begin the measurement. Do not move the sample until the reading is complete.",
         }
-
-        text = explanations.get(step, "No explanation available.")
-        self.expl_label.setText(text)
+        self.expl_label.setText(explanations.get(step, "No explanation available."))
         self.expl_label.setStyleSheet(
             f"color: {TEXT_MAIN}; background: transparent; border: none;"
         )
@@ -382,17 +377,11 @@ class InstrumentPage(QWidget):
         right = QVBoxLayout()
         right.setSpacing(8)
 
-        explanation = ExplanationPanel()
-        instructions = InstructionsPanel(explanation_panel=explanation)
-
-        top_right = QHBoxLayout()
-        top_right.setSpacing(8)
-        top_right.addWidget(instructions, stretch=2)
-        top_right.addWidget(explanation, stretch=3)
+        instructions = InstructionsPanel()
 
         self.data_viewer = DataViewerPanel()
 
-        right.addLayout(top_right, stretch=1)
+        right.addWidget(instructions, stretch=1)
         right.addWidget(self.data_viewer, stretch=3)
 
         root.addLayout(right, stretch=1)
