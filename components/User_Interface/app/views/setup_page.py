@@ -13,7 +13,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QFrame,
     QSizePolicy,
-    QComboBox,
     QFileDialog,
     QMessageBox,
 )
@@ -138,7 +137,6 @@ class ConnectionSubPanel(QWidget):
         self,
         heading: str,
         info_text: str,
-        show_instrument_selector: bool = False,
         reconnect_cmd=None,
         parent=None,
     ):
@@ -154,44 +152,6 @@ class ConnectionSubPanel(QWidget):
             f"color: {TEXT_MAIN}; background: transparent; border: none;"
         )
         layout.addWidget(heading_lbl)
-
-        if show_instrument_selector:
-            type_label = QLabel("Instrument type")
-            type_label.setFont(QFont("Helvetica Neue", 9))
-            type_label.setStyleSheet(
-                f"color: {TEXT_MUTED}; background: transparent; border: none;"
-            )
-
-            self.instrument_combo = QComboBox()
-            self.instrument_combo.addItems(
-                [
-                    "Cary 60 UV-Vis",
-                    "Bruker Alpha II IR",
-                ]
-            )
-            self.instrument_combo.setFont(QFont("Helvetica Neue", 9))
-            self.instrument_combo.setStyleSheet(f"""
-                QComboBox {{
-                    background-color: {BG_INSET};
-                    color: {TEXT_MAIN};
-                    border: 1px solid {BORDER};
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    height: 26px;
-                }}
-                QComboBox::drop-down {{ border: none; width: 20px; }}
-                QComboBox QAbstractItemView {{
-                    background-color: {BG_INSET};
-                    color: {TEXT_MAIN};
-                    selection-background-color: {BG_BTN};
-                    selection-color: {TEXT_BTN};
-                    border: 1px solid {BORDER};
-                }}
-                """)
-
-            layout.addWidget(type_label)
-            layout.addWidget(self.instrument_combo)
-            layout.addWidget(h_rule())
 
         row = QHBoxLayout()
         row.setSpacing(10)
@@ -252,7 +212,6 @@ class StatusPanel(Panel):
         self.instr_sub = ConnectionSubPanel(
             "Instrument Information",
             "Ensure USB Connection to Instrument",
-            show_instrument_selector=True,
             reconnect_cmd=self._on_reconnect_instrument,
         )
         layout.addWidget(self.instr_sub, stretch=1)
