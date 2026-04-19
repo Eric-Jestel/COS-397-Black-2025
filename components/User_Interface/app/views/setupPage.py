@@ -120,7 +120,7 @@ class BrandingPanel(Panel):
 
         for text in [
             "Developed by Jack of all Spades",
-            "For COS Capstone 2025-2026"
+            "Computer Science Capstone, Class of 2026"
         ]:
             lbl = QLabel(text)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)

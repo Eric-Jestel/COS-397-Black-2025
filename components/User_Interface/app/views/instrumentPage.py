@@ -95,7 +95,40 @@ class StyledButton(QPushButton):
             """)
 
 
-# ── Panel 1 : Login ───────────────────────────────────────────────────────────
+# ── Panel 1 : Branding ───────────────────────────────────────────────────────
+class BrandingPanel(Panel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setContentsMargins(22, 22, 22, 22)
+        layout.setSpacing(4)
+
+        title = QLabel("SimplyMeasure")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setFont(QFont("Georgia", 17, QFont.Weight.Bold))
+        title.setStyleSheet(
+            f"color: {TEXT_MAIN}; background: transparent; border: none;"
+        )
+        layout.addWidget(title)
+        layout.addSpacing(10)
+        layout.addWidget(h_rule())
+        layout.addSpacing(10)
+
+        for text in [
+            "Developed by Jack of all Spades",
+            "Computer Science Capstone, Class of 2026",
+        ]:
+            lbl = QLabel(text)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setFont(QFont("Helvetica Neue", 9))
+            lbl.setStyleSheet(
+                f"color: {TEXT_MUTED}; background: transparent; border: none;"
+            )
+            layout.addWidget(lbl)
+
+
+# ── Panel 2 : Login ───────────────────────────────────────────────────────────
 class LoginPanel(Panel):
     def __init__(self, app=None, parent=None):
         super().__init__(parent)
@@ -324,40 +357,45 @@ class InstrumentPage(QWidget):
         self.main_window = main_window
         self.setStyleSheet(f"background-color: {BG};")
 
-        root = QVBoxLayout(self)
+        root = QHBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(8)
 
-        # Top row: Login | Instructions | Explanation
-        top = QHBoxLayout()
-        top.setSpacing(8)
+        # Left column: Branding | Login | Actions (fixed 260px)
+        left = QVBoxLayout()
+        left.setSpacing(8)
+
+        branding = BrandingPanel()
+        login = LoginPanel(app=self.app)
+        actions = ActionPanel(app=self.app, main_window=self.main_window)
+
+        left.addWidget(branding)
+        left.addWidget(login)
+        left.addWidget(actions)
+
+        left_container = QWidget()
+        left_container.setFixedWidth(260)
+        left_container.setLayout(left)
+        root.addWidget(left_container)
+
+        # Right area: Instructions + Explanation on top, Data viewer below
+        right = QVBoxLayout()
+        right.setSpacing(8)
 
         explanation = ExplanationPanel()
-
-        login = LoginPanel(app=self.app)
-        login.setMinimumWidth(300)
-
         instructions = InstructionsPanel(explanation_panel=explanation)
-        instructions.setMinimumWidth(300)
 
-        top.addWidget(login, stretch=2)
-        top.addWidget(instructions, stretch=2)
-        top.addWidget(explanation, stretch=3)
-
-        # Bottom row: Actions | Data viewer
-        bottom = QHBoxLayout()
-        bottom.setSpacing(8)
-
-        actions = ActionPanel(app=self.app, main_window=self.main_window)
-        actions.setFixedWidth(260)
+        top_right = QHBoxLayout()
+        top_right.setSpacing(8)
+        top_right.addWidget(instructions, stretch=2)
+        top_right.addWidget(explanation, stretch=3)
 
         self.data_viewer = DataViewerPanel()
 
-        bottom.addWidget(actions)
-        bottom.addWidget(self.data_viewer)
+        right.addLayout(top_right, stretch=1)
+        right.addWidget(self.data_viewer, stretch=3)
 
-        root.addLayout(top, stretch=1)
-        root.addLayout(bottom, stretch=3)
+        root.addLayout(right, stretch=1)
 
     def showEvent(self, event):
         """
