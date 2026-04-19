@@ -108,9 +108,9 @@ class BrandingPanel(Panel):
         layout.setContentsMargins(22, 22, 22, 22)
         layout.setSpacing(4)
 
-        title = QLabel("Chemistry\nInstrumentation")
+        title = QLabel("SimplyMeasure")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setFont(QFont("Georgia", 15, QFont.Weight.Bold))
+        title.setFont(QFont("Georgia", 17, QFont.Weight.Bold))
         title.setStyleSheet(
             f"color: {TEXT_MAIN}; background: transparent; border: none;"
         )
@@ -121,8 +121,7 @@ class BrandingPanel(Panel):
 
         for text in [
             "Developed by Jack of all Spades",
-            "Licensed under …, 2025",
-            "Developer Contact Info?",
+            "For COS Capstone 2025-2026"
         ]:
             lbl = QLabel(text)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
