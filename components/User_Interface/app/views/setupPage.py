@@ -363,8 +363,21 @@ class ActionPanel(Panel):
             QMessageBox.warning(self, "Save Blank", "No blank is currently loaded.")
 
     def _on_continue(self):
-        if self.main_window:
-            self.main_window.go_to_instrument_page()
+        if not self.main_window:
+            return
+        server_down = self.app and self.app.state.server_status != "OK"
+        if server_down:
+            reply = QMessageBox.question(
+                self,
+                "No Server Connection",
+                "The server is not connected. Proceed in offline mode?\n\n"
+                "In offline mode you can take samples without logging in.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            self.app.state.offline_mode = True
+        self.main_window.go_to_instrument_page()
 
     def _on_toggle_debug(self):
         if not self.app:

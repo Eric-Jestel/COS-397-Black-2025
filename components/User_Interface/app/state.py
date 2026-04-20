@@ -12,3 +12,5 @@ class UIState:
 
     blank_file_path: Optional[str] = None
     sample_files: List[str] = field(default_factory=list)
+
+    offline_mode: bool = False

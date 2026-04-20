@@ -299,7 +299,7 @@ class ActionPanel(Panel):
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.take_btn.clicked.connect(self._on_take_sample)
-        self.take_btn.setEnabled(bool(app and app.state.username))
+        self.take_btn.setEnabled(bool(app and (app.state.username or app.state.offline_mode)))
         layout.addWidget(self.take_btn, stretch=1)
 
         self.adv_btn = StyledButton("Advanced options", large=True)
@@ -341,6 +341,8 @@ class ActionPanel(Panel):
         )
 
     def set_take_enabled(self, enabled: bool):
+        if self.app and self.app.state.offline_mode:
+            return
         self.take_btn.setEnabled(enabled)
 
     def _on_advanced(self):
