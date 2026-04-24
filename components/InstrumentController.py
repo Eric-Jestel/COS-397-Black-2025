@@ -64,6 +64,8 @@ class InstrumentController:
 
         self.debug = bool(debug)
         self.blank_file = ""
+        self.blank_start = 0
+        self.blank_end = 0
         self.blank_data = []
 
         self.instrumentParams = {
@@ -261,10 +263,125 @@ class InstrumentController:
         return ""
 
     def _read_blank(self, filename):
-        return
+        if not self.validate_scan(filename):
+            return
+        blankList = []
+        waveStart = 0
+        waveEnd = 0
+        try:
+            with open(filename) as blankFile:
+                # skip the fist two lines
+                settings = blankFile.readline().split("-")
+                waveStart = float(settings[1])
+                waveEnd = float(settings[2])
+                next(blankFile)
+                for line in blankFile:
+                    if line != "\n":
+                        values = [float(i) for i in line.strip().split(",")[:2]]
+                        blankList.append(values)
+            self.blank_file = filename
+            self.blank_start = waveStart
+            self.blank_end = waveEnd
+            self.blank_data = blankList
+            return
+        except ValueError:
+            print("ValueError while reading blank file:", filename)
+            return
+        except FileNotFoundError:
+            return  # should neven get here because of validate_scan
 
     def _compare_to_blank(self, filename):
-        return
+        if self.blank_file == "":
+            return  # nothing to compare to
+        if not self.validate_scan(filename):
+            return
+        fileData = []
+        try:
+            with open(filename) as scanFile:
+                # skip the fist two lines
+                fileData.append(scanFile.readline())
+                fileData.append(scanFile.readline())
+                for line in scanFile:
+                    if line != "\n":
+                        values = [float(i) for i in line.strip().split(",")[:2]]
+                        aproxIndex = int(self.blank_start - values[0])
+
+                        waveNeg = self.blank_data[aproxIndex - 1][0]
+                        waveZero = self.blank_data[aproxIndex][0]
+
+                        try:
+                            wavePos = self.blank_data[aproxIndex + 1][0]
+                        except IndexError:
+                            wavePos = 0
+
+                        minDif = abs(waveNeg - values[0])
+                        waveIndex = aproxIndex - 1
+                        if abs(waveZero - values[0]) < minDif:
+                            minDif = abs(waveZero - values[0])
+                            waveIndex = aproxIndex
+                        if abs(wavePos - values[0]) < minDif:
+                            waveIndex = aproxIndex + 1
+
+                        fileData.append(str(values[0]) + "," + str(values[1] - self.blank_data[waveIndex][1]) + ",\n")
+
+            with open(filename, "w") as scanFile:
+                for line in fileData:
+                    scanFile.write(line)
+
+            return
+        except ValueError:
+            print("ValueError while reading scan file:", filename)
+            return
+        except FileNotFoundError:
+            return  # should neven get here because of validate_scan
+
+    def validate_scan(self, filename):
+        """
+        Validates that scan/blank file matched the format for this instrument
+
+        Args:
+            filename (str): The filename of the blank file being validated
+
+        Returns:
+            boolean: True if valid, false if invalid
+        """
+        try:
+            with open(filename) as blankFile:
+                settings = blankFile.readline().split("-")
+                if len(settings) < 4:
+                    return False
+
+                name = settings[0].split("_")
+                satSettings = settings[3].split(",")
+                if len(satSettings) < 3 or len(name) < 2 or name[0] != "UV" or name[1] != "Vis":
+                    return False
+
+                fields = blankFile.readline().split(",")
+                if len(fields) < 2 or fields[0] != "Wavelength (nm)" or fields[1] != "Abs":
+                    return False
+
+                waveStart = float(settings[1])
+                waveEnd = float(settings[2])
+                saturation = float(satSettings[0])
+                if waveStart > self.WAVE_MAX or waveEnd < self.WAVE_MIN or waveStart <= waveEnd:
+                    return False
+                if saturation < self.SAT_MIN or saturation > self.SAT_MAX:
+                    return False
+
+                prevWave = waveStart + 1
+                for line in blankFile:
+                    if line != "\n":
+                        values = [float(i) for i in line.strip().split(",")[:2]]
+                        waveDif = prevWave - values[0]
+                        if waveDif > 1.5 or waveDif < 0.5:
+                            return False
+                        prevWave = values[0]
+
+                return True
+        except ValueError:
+            return False
+        except FileNotFoundError:
+            return False
 
     def getScanTime(self):
         """
@@ -353,6 +470,7 @@ class InstrumentController:
             return False
 
         blank = self._get_result_path()
+        self._read_blank(blank)
 
         return blank
 
@@ -375,7 +493,7 @@ class InstrumentController:
 
             return False
         else:
-            self.blank_file = str(blank_path)
+            self._read_blank(filename)
 
             self._debug(f"set_blank() success blank_file={self.blank_file}")
             self._print_executed("set_blank", True)
@@ -385,6 +503,9 @@ class InstrumentController:
     def clear_blank(self) -> None:
         self._print_received("clear_blank")
         self.blank_file = ""
+        self.blank_start = 0
+        self.blank_end = 0
+        self.blank_data = []
         self._debug("clear_blank() blank reference removed")
         self._print_executed("clear_blank", True)
 
@@ -414,6 +535,7 @@ class InstrumentController:
             return None
 
         sample = self._get_result_path()
+        self._compare_to_blank(sample)
 
         return sample
 
@@ -475,16 +597,3 @@ class InstrumentController:
 
         reply = self._send_and_wait("SHUTDOWN", {})
         return self._is_success(reply)
-
-
-# print("Launched. Wait 10 seconds")
-# time.sleep(10)
-# print(testing.take_blank("test_blank.txt"))
-
-# instrument_controller = InstrumentController()
-
-# print(instrument_controller.setup())
-# print(instrument_controller.ping())
-# instrument_controller.take_sample("test_sample1.txt")
-# instrument_controller.take_sample("test_sample2.txt")
-# instrument_controller.take_sample("test_sample3.txt")
