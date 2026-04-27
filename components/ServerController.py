@@ -393,7 +393,7 @@ class ServerController:
 
         scan_type_token = lines[0].split("-", 1)[0].strip()
         normalized = scan_type_token.replace("_", "-").lower()
-        if normalized == "uv-vis":
+        if normalized == "uv-vis" or normalized == "uvvis":
             instrument_type = "uv-vis"
         elif normalized == "ir":
             instrument_type = "ir"
