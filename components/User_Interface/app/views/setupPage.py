@@ -13,7 +13,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QFrame,
     QSizePolicy,
-    QFileDialog,
     QMessageBox,
 )
 from PyQt6.QtCore import Qt
@@ -284,8 +283,12 @@ class ActionPanel(Panel):
     def _on_capture_blank(self):
         if not self.app:
             return
+        from app.dialogs.blanksFolder import get_blanks_folder
+        from datetime import datetime
+        blanks_dir = get_blanks_folder(parent=self)
+        filename = str(blanks_dir / f"blank_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
         code, blank_path = (
-            self.app.controller.takeBlank()
+            self.app.controller.takeBlank(filename)
         )  # Blank is captured from takeBlank() return
         if code == 0:
             self.app.state.blank_file_path = blank_path
@@ -310,12 +313,8 @@ class ActionPanel(Panel):
             )
 
     def _on_load_blank(self):
-        filepath, _ = QFileDialog.getOpenFileName(
-            self,
-            "Load Blank Spectrum",
-            "",
-            "CSV Files (*.csv);;All Files (*)",  # Get filepath for blank
-        )
+        from app.dialogs.blanksFolder import open_blank_file
+        filepath = open_blank_file(parent=self)
         if not filepath:
             return
 
