@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import time
+import csv
 
 # import os
 
@@ -15,8 +16,10 @@ print("InstrumentController module loaded")
 class InstrumentControllerOpus:
     
 
-    def __init__(self):
+    def __init__(self, PROJECT_ROOT, debug: bool = False):
 
+        self.PROJECT_ROOT = PROJECT_ROOT
+        self.debug = bool(debug)
         # Path to Opus software
         self.opusExePath = "C:\\Program Files\\Bruker\\OPUS_8.8.4\\opus.exe"  # change to actual path to opus software
         
@@ -36,6 +39,8 @@ class InstrumentControllerOpus:
         self.sampleSettings = {}
 
         self.opus_process = None
+
+        self.blank_file = "" # <--
         
 
     def _print_received(self, command: str, payload=None) -> None:
@@ -44,7 +49,75 @@ class InstrumentControllerOpus:
     def _print_executed(self, command: str, result=None) -> None:
         print(f"[InstrumentController][EXECUTED] {command} result={result}")
 
+    # this is a test!!!!
 
+    def opus_to_csv(
+    opus_filename,
+    csv_filename,
+    wave_start,
+    wave_stop,
+    saturation,
+    bandwidth
+    ):
+        """
+        Read a native OPUS .0 file and convert it into a CSV file shaped like the
+        UV-Vis controller output.
+
+        Returns:
+            str | None: path to the CSV file on success, None on failure
+        """
+
+        try:
+            opus_path = Path(opus_filename)
+            csv_path = Path(csv_filename)
+
+            if not opus_path.exists():
+                print("ERROR: OPUS file not found:", opus_path)
+                return None
+
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+            ofile = OPUSFile(str(opus_path))
+            data_iter = ofile.iter_data()
+
+            output_data = None
+
+            for value in data_iter:
+                x_values = getattr(value, "x", None)
+                y_values = getattr(value, "y", None)
+
+                if x_values is None or y_values is None:
+                    continue
+
+                output_data = [
+                    [float(x), float(y)]
+                    for x, y in zip(x_values, y_values)
+                ]
+
+                if output_data:
+                    break
+
+            if not output_data:
+                print("ERROR: No usable data blocks found in:", opus_path)
+                return None
+
+            with open(csv_path, "w", newline="", encoding="utf-8") as csv_file:
+                writer = csv.writer(csv_file)
+
+                # Match the general format expected by the other instrument controller
+                csv_file.write(f"UVVis-{wave_start}-{wave_stop}-{saturation},{bandwidth},\n")
+
+                # Header line
+                writer.writerow(["Wavelength (nm)", "Abs"])
+
+                # Data rows
+                writer.writerows(output_data)
+
+            return str(csv_path)
+
+        except Exception as e:
+            print("ERROR converting OPUS file to CSV:", e)
+            return None
 
 
     def setup(self, launch_opus=True) -> bool:
