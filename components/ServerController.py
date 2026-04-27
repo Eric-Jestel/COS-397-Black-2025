@@ -302,17 +302,30 @@ class ServerController:
 
         with open(samplePath, "r") as f:
             dataArray = []
+            instrument_type = None
             for line in f:
                 stripped = line.strip()
                 if not stripped or stripped in {"[", "]"}:
                     continue
                 if stripped.endswith(","):
                     stripped = stripped[:-1]
-                dataArray.append(json.loads(stripped))
+                row = json.loads(stripped)
+                if "instrument-type" in row:
+                    instrument_type = str(row["instrument-type"]).strip().lower()
+                    continue
+                dataArray.append(row)
+
+        if instrument_type not in {"uv-vis", "ir"}:
+            self._debug(
+                f"send_data() invalid or missing instrument-type in staged file: {samplePath}"
+            )
+            self._print_executed("send_data", False)
+            return False
 
         json_input = {
             "sessionUUID": self.UUID,
             "dataKey": data_key,
+            "instrument-type": instrument_type,
             "dataArray": dataArray,
         }
 
@@ -329,6 +342,7 @@ class ServerController:
         )
 
         if payload.get("success"):
+            print(payload)
             rename_to_sent = Path(samplePath).with_name(
                 f"{username}_{data_key}_sent{Path(samplePath).suffix}"
             )
@@ -356,7 +370,12 @@ class ServerController:
             return False
 
         filename_username = self.user
-        filename_datetime = Path(filepath).stem
+        filename_stem = Path(filepath).stem
+        username_prefix = f"{filename_username}"
+        if filename_stem.startswith(username_prefix):
+            filename_datetime = filename_stem[len(username_prefix) :]
+        else:
+            filename_datetime = filename_stem
         filename_suffix = "_unsent.json"
 
         out_path = (
@@ -367,18 +386,50 @@ class ServerController:
         with open(filepath, "r") as f:
             lines = f.readlines()
 
+        if len(lines) < 2:
+            self._debug(f"parse_csv() invalid csv: {filepath}")
+            self._print_executed("parse_csv", False)
+            return False
+
+        scan_type_token = lines[0].split("-", 1)[0].strip()
+        normalized = scan_type_token.replace("_", "-").lower()
+        if normalized == "uv-vis":
+            instrument_type = "uv-vis"
+        elif normalized == "ir":
+            instrument_type = "ir"
+        else:
+            self._debug(f"parse_csv() unsupported scan type token: {scan_type_token}")
+            self._print_executed("parse_csv", False)
+            return False
+
         with open(out_path, "w+") as f:
             f.write("[\n")
-            for line in lines[2:-1]:
+            f.write('{"instrument-type": "' + instrument_type + '"},\n')
+            for line in lines[2:]:
+                if not line.strip():
+                    continue
+                parts = line.split(",")
+                if len(parts) < 2:
+                    continue
                 f.write(
                     '{"nm": '
-                    + line.split(",")[0]
+                    + parts[0]
                     + ', "abs": '
-                    + line.split(",")[1]
+                    + parts[1]
                     + "}\n"
                 )
             f.write("]")
 
         self._print_executed("parse_csv", {"out_path": str(out_path)})
         return True
+
+
+if __name__ == "__main__":
+    test_controller = ServerController(PROJECT_ROOT=".", debug=True)
+    print(test_controller.connect())
+    print(test_controller.login("testuser"))
+
+    test_csv = Path("scans") / "2025-01-01T12-00-01.csv"
+    print(test_controller.parse_csv(str(test_csv)))
+    print(test_controller.send_all_data())
 
