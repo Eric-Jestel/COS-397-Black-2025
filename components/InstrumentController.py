@@ -7,6 +7,7 @@
 # from datetime import datetime
 # import json
 
+import shutil
 import time
 import uuid
 import winreg
@@ -470,6 +471,11 @@ class InstrumentController:
             return False
 
         blank = self._get_result_path()
+
+        if blank and out_target != Path(blank):
+            shutil.copy2(blank, out_target)
+            blank = str(out_target)
+
         self._read_blank(blank)
 
         return blank
