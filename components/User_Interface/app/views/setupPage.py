@@ -344,6 +344,9 @@ class ActionPanel(Panel):
             self.app.controller.InstController.clear_blank()
         self.app.state.blank_file_path = None
         self.plot_panel.clear_plot()
+        instrument_page = self.app.pages.get("session")
+        if instrument_page is not None:
+            instrument_page.data_viewer.clear_blank()
 
     def _on_save_blank(self):
         if not self.app:

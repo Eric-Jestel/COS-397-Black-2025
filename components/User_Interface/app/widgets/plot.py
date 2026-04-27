@@ -296,6 +296,14 @@ class SamplePlot(SpectrumPlotWidget):
         if self._blank_curve is None:
             self._show_placeholder()
 
+    def clear_blank(self):
+        """Remove only the blank/reference curve; sample curves are kept."""
+        if self._blank_curve is not None:
+            self.plot_widget.removeItem(self._blank_curve)
+            self._blank_curve = None
+        if not self._sample_curves:
+            self._show_placeholder()
+
     def clear_all(self):
         """Remove all curves including the blank."""
         self.clear_samples()
