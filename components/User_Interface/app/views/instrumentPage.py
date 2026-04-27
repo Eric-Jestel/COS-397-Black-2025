@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
 # ── Palette ──────────────────────────────────────────
@@ -90,13 +90,50 @@ class StyledButton(QPushButton):
                 border-radius: 4px;
                 padding: 5px 16px;
             }}
-            QPushButton:hover   {{ background-color: {BG_BTN_HOV}; }}
-            QPushButton:pressed {{ background-color: {BG_BTN_PRS}; }}
+            QPushButton:hover    {{ background-color: {BG_BTN_HOV}; }}
+            QPushButton:pressed  {{ background-color: {BG_BTN_PRS}; }}
+            QPushButton:disabled {{ background-color: #E8E8E8; color: #A0A0A0; }}
             """)
 
 
-# ── Panel 1 : Login ───────────────────────────────────────────────────────────
+# ── Panel 1 : Branding ───────────────────────────────────────────────────────
+class BrandingPanel(Panel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setContentsMargins(22, 22, 22, 22)
+        layout.setSpacing(4)
+
+        title = QLabel("SimplyMeasure")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setFont(QFont("Georgia", 17, QFont.Weight.Bold))
+        title.setStyleSheet(
+            f"color: {TEXT_MAIN}; background: transparent; border: none;"
+        )
+        layout.addWidget(title)
+        layout.addSpacing(10)
+        layout.addWidget(h_rule())
+        layout.addSpacing(10)
+
+        for text in [
+            "Developed by Jack of all Spades",
+            "Computer Science Capstone, Class of 2026",
+        ]:
+            lbl = QLabel(text)
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setFont(QFont("Helvetica Neue", 8))
+            lbl.setStyleSheet(
+                f"color: {TEXT_MUTED}; background: transparent; border: none;"
+            )
+            layout.addWidget(lbl)
+
+
+# ── Panel 2 : Login ───────────────────────────────────────────────────────────
 class LoginPanel(Panel):
+    login_changed = pyqtSignal(bool)
+    session_reset = pyqtSignal()
+
     def __init__(self, app=None, parent=None):
         super().__init__(parent)
         self.app = app
@@ -141,17 +178,42 @@ class LoginPanel(Panel):
 
         layout.addSpacing(4)
 
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(10)
         self.login_btn = StyledButton("Login")
+        self.login_btn.setStyleSheet("""
+            QPushButton          { background-color: #4CAF50; color: #FFFFFF;
+                                   border: none; border-radius: 4px; padding: 5px 16px; }
+            QPushButton:hover    { background-color: #43A047; }
+            QPushButton:pressed  { background-color: #388E3C; }
+            QPushButton:disabled { background-color: #E8E8E8; color: #A0A0A0; }
+        """)
         self.login_btn.clicked.connect(self._on_login)
-        self.reset_btn = StyledButton("Reset")
-        self.reset_btn.clicked.connect(self._on_reset)
-        btn_row.addWidget(self.login_btn)
-        btn_row.addWidget(self.reset_btn)
-        layout.addLayout(btn_row)
+        layout.addWidget(self.login_btn)
 
-        layout.addStretch()
+        self.reset_btn = StyledButton("Reset")
+        self.reset_btn.setStyleSheet("""
+            QPushButton          { background-color: #F9A825; color: #FFFFFF;
+                                   border: none; border-radius: 4px; padding: 5px 16px; }
+            QPushButton:hover    { background-color: #F57F17; }
+            QPushButton:pressed  { background-color: #E65100; }
+            QPushButton:disabled { background-color: #E8E8E8; color: #A0A0A0; }
+        """)
+        self.reset_btn.clicked.connect(self._on_reset)
+        self.reset_btn.setVisible(False)
+        layout.addWidget(self.reset_btn)
+
+        # Restore button state if already logged in
+        if app and app.state.username:
+            self._show_reset_state()
+
+    def _show_login_state(self):
+        self.login_btn.setVisible(True)
+        self.reset_btn.setVisible(False)
+        self.username_input.setReadOnly(False)
+
+    def _show_reset_state(self):
+        self.login_btn.setVisible(False)
+        self.reset_btn.setVisible(True)
+        self.username_input.setReadOnly(True)
 
     def _on_login(self):
         if not self.app:
@@ -160,28 +222,30 @@ class LoginPanel(Panel):
         if not username:
             QMessageBox.warning(self, "Login", "Please enter a username.")
             return
-        self.app.state.username = username
         code = self.app.controller.signIn(username)
         if code == 0:
-            QMessageBox.information(self, "Login", f"Logged in as {username}")
+            self.app.state.username = username
+            self._show_reset_state()
+            self.login_changed.emit(True)
+            QMessageBox.information(self, "Login", f"Logged in as {username}.")
         else:
-            QMessageBox.critical(
-                self,
-                "Login",
-                self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
-            )
+            error = self.app.controller.ErrorDictionary.get(code, f"Error code: {code}")
+            QMessageBox.critical(self, "Login Failed", f"Could not verify username.\n\n{error}")
 
     def _on_reset(self):
         self.username_input.clear()
         if self.app:
             self.app.state.username = ""
+            self.app.state.sample_files.clear()
+        self._show_login_state()
+        self.login_changed.emit(False)
+        self.session_reset.emit()
 
 
 # ── Panel 2 : Instructions ────────────────────────────────────────────────────
 class InstructionsPanel(Panel):
-    def __init__(self, explanation_panel: "ExplanationPanel", parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.explanation_panel = explanation_panel
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
@@ -197,6 +261,13 @@ class InstructionsPanel(Panel):
         layout.addWidget(h_rule())
         layout.addSpacing(4)
 
+        # Step buttons + explanation side by side
+        body = QHBoxLayout()
+        body.setSpacing(10)
+
+        steps_col = QVBoxLayout()
+        steps_col.setSpacing(8)
+
         steps = [
             ("Step 1: Login", 1),
             ("Step 2: Load Sample", 2),
@@ -206,21 +277,11 @@ class InstructionsPanel(Panel):
         for label, step_num in steps:
             btn = StyledButton(label)
             btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            btn.clicked.connect(
-                lambda _, n=step_num: self.explanation_panel.set_step(n)
-            )
-            layout.addWidget(btn)
+            btn.clicked.connect(lambda _, n=step_num: self._set_step(n))
+            steps_col.addWidget(btn)
 
-        layout.addStretch()
-
-
-# ── Panel 3 : Explanation ─────────────────────────────────────────────────────
-class ExplanationPanel(Panel):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
+        steps_col.addStretch()
+        body.addLayout(steps_col, stretch=2)
 
         inset = InsetBox()
         inset.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -233,18 +294,17 @@ class ExplanationPanel(Panel):
             f"color: {TEXT_MUTED}; background: transparent; border: none;"
         )
         inset.layout().addWidget(self.expl_label)
+        body.addWidget(inset, stretch=3)
 
-        layout.addWidget(inset)
+        layout.addLayout(body)
 
-    def set_step(self, step: int):
+    def _set_step(self, step: int):
         explanations = {
             1: "Log in by entering your ICN username.",
             2: "Place your sample in the instrument. Ensure the sample holder is clean and properly positioned. The smooth side of Cuvette should be facing the camera.",
             3: "Press Capture to begin the measurement. Do not move the sample until the reading is complete.",
         }
-
-        text = explanations.get(step, "No explanation available.")
-        self.expl_label.setText(text)
+        self.expl_label.setText(explanations.get(step, "No explanation available."))
         self.expl_label.setStyleSheet(
             f"color: {TEXT_MAIN}; background: transparent; border: none;"
         )
@@ -262,10 +322,18 @@ class ActionPanel(Panel):
         layout.setSpacing(12)
 
         self.take_btn = StyledButton("Take sample", large=True)
+        self.take_btn.setStyleSheet("""
+            QPushButton          { background-color: #4CAF50; color: #FFFFFF;
+                                   border: none; border-radius: 4px; padding: 5px 16px; }
+            QPushButton:hover    { background-color: #43A047; }
+            QPushButton:pressed  { background-color: #388E3C; }
+            QPushButton:disabled { background-color: #E8E8E8; color: #A0A0A0; }
+        """)
         self.take_btn.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         self.take_btn.clicked.connect(self._on_take_sample)
+        self.take_btn.setEnabled(bool(app and (app.state.username or app.state.offline_mode)))
         layout.addWidget(self.take_btn, stretch=1)
 
         self.adv_btn = StyledButton("Advanced options", large=True)
@@ -278,9 +346,17 @@ class ActionPanel(Panel):
     def _on_take_sample(self):
         if not self.app:
             return
-        code, csv_path = (
-            self.app.controller.runLabMachine()
-        )  # CSV path is accetped as a return from runLabMachine()
+        from app.dialogs.captureDialog import CaptureDialog
+        from PyQt6.QtWidgets import QApplication
+
+        dialog = CaptureDialog(parent=self)
+        dialog.show()
+        QApplication.processEvents()
+
+        code, csv_path = self.app.controller.runLabMachine()
+
+        dialog.done(0)
+
         if code == 0 and csv_path:
             sample_name = Path(csv_path).name
             self.app.state.sample_files.append(csv_path)
@@ -298,14 +374,19 @@ class ActionPanel(Panel):
             self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
         )
 
+    def set_take_enabled(self, enabled: bool):
+        if self.app and self.app.state.offline_mode:
+            return
+        self.take_btn.setEnabled(enabled)
+
     def _on_advanced(self):
-        from app.dialogs.advanced_options import AdvancedOptionsDialog
+        from app.dialogs.advancedOptions import AdvancedOptionsDialog
 
         dialog = AdvancedOptionsDialog(parent=self, app=self.app)
         dialog.exec()
 
 
-# ── Panel 5 : Data viewer (plot) ──────────────────────────────────────────────
+# ── Panel 5 : Data viewer ──────────────────────────────────────────────
 class DataViewerPanel(SamplePlot):
     """
     Thin subclass of SamplePlot that wraps it in the same Panel styling
@@ -324,40 +405,44 @@ class InstrumentPage(QWidget):
         self.main_window = main_window
         self.setStyleSheet(f"background-color: {BG};")
 
-        root = QVBoxLayout(self)
+        root = QHBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(8)
 
-        # Top row: Login | Instructions | Explanation
-        top = QHBoxLayout()
-        top.setSpacing(8)
+        # Left column: Branding | Login | Actions (fixed 260px)
+        left = QVBoxLayout()
+        left.setSpacing(8)
 
-        explanation = ExplanationPanel()
-
+        branding = BrandingPanel()
         login = LoginPanel(app=self.app)
-        login.setMinimumWidth(300)
-
-        instructions = InstructionsPanel(explanation_panel=explanation)
-        instructions.setMinimumWidth(300)
-
-        top.addWidget(login, stretch=2)
-        top.addWidget(instructions, stretch=2)
-        top.addWidget(explanation, stretch=3)
-
-        # Bottom row: Actions | Data viewer
-        bottom = QHBoxLayout()
-        bottom.setSpacing(8)
-
         actions = ActionPanel(app=self.app, main_window=self.main_window)
-        actions.setFixedWidth(260)
+        login.login_changed.connect(actions.set_take_enabled)
+        login.session_reset.connect(self._on_session_reset)
+
+        left.addWidget(branding, stretch=1)
+        left.addWidget(login)
+        left.addWidget(actions, stretch=4)
+
+        left_container = QWidget()
+        left_container.setFixedWidth(270)
+        left_container.setLayout(left)
+        root.addWidget(left_container)
+
+        # Right area: Instructions + Explanation on top, Data viewer below
+        right = QVBoxLayout()
+        right.setSpacing(8)
+
+        instructions = InstructionsPanel()
 
         self.data_viewer = DataViewerPanel()
 
-        bottom.addWidget(actions)
-        bottom.addWidget(self.data_viewer)
+        right.addWidget(instructions, stretch=1)
+        right.addWidget(self.data_viewer, stretch=3)
 
-        root.addLayout(top, stretch=1)
-        root.addLayout(bottom, stretch=3)
+        root.addLayout(right, stretch=1)
+
+    def _on_session_reset(self):
+        self.data_viewer.clear_samples()
 
     def showEvent(self, event):
         """

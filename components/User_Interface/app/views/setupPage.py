@@ -13,8 +13,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QFrame,
     QSizePolicy,
-    QComboBox,
-    QFileDialog,
     QMessageBox,
 )
 from PyQt6.QtCore import Qt
@@ -99,7 +97,7 @@ def h_rule():
     return f
 
 
-# ── Panel 1 : Branding ────────────────────────────────────────────────────────
+# ── Panel 1 : Title Widget ────────────────────────────────────────────────────────
 class BrandingPanel(Panel):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -108,9 +106,9 @@ class BrandingPanel(Panel):
         layout.setContentsMargins(22, 22, 22, 22)
         layout.setSpacing(4)
 
-        title = QLabel("Chemistry\nInstrumentation")
+        title = QLabel("SimplyMeasure")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setFont(QFont("Georgia", 15, QFont.Weight.Bold))
+        title.setFont(QFont("Georgia", 17, QFont.Weight.Bold))
         title.setStyleSheet(
             f"color: {TEXT_MAIN}; background: transparent; border: none;"
         )
@@ -121,12 +119,11 @@ class BrandingPanel(Panel):
 
         for text in [
             "Developed by Jack of all Spades",
-            "Licensed under …, 2025",
-            "Developer Contact Info?",
+            "Computer Science Capstone, Class of 2026"
         ]:
             lbl = QLabel(text)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl.setFont(QFont("Helvetica Neue", 9))
+            lbl.setFont(QFont("Helvetica Neue", 8))
             lbl.setStyleSheet(
                 f"color: {TEXT_MUTED}; background: transparent; border: none;"
             )
@@ -139,7 +136,6 @@ class ConnectionSubPanel(QWidget):
         self,
         heading: str,
         info_text: str,
-        show_instrument_selector: bool = False,
         reconnect_cmd=None,
         parent=None,
     ):
@@ -155,44 +151,6 @@ class ConnectionSubPanel(QWidget):
             f"color: {TEXT_MAIN}; background: transparent; border: none;"
         )
         layout.addWidget(heading_lbl)
-
-        if show_instrument_selector:
-            type_label = QLabel("Instrument type")
-            type_label.setFont(QFont("Helvetica Neue", 9))
-            type_label.setStyleSheet(
-                f"color: {TEXT_MUTED}; background: transparent; border: none;"
-            )
-
-            self.instrument_combo = QComboBox()
-            self.instrument_combo.addItems(
-                [
-                    "Cary 60 UV-Vis",
-                    "Bruker Alpha II IR",
-                ]
-            )
-            self.instrument_combo.setFont(QFont("Helvetica Neue", 9))
-            self.instrument_combo.setStyleSheet(f"""
-                QComboBox {{
-                    background-color: {BG_INSET};
-                    color: {TEXT_MAIN};
-                    border: 1px solid {BORDER};
-                    border-radius: 4px;
-                    padding: 4px 8px;
-                    height: 26px;
-                }}
-                QComboBox::drop-down {{ border: none; width: 20px; }}
-                QComboBox QAbstractItemView {{
-                    background-color: {BG_INSET};
-                    color: {TEXT_MAIN};
-                    selection-background-color: {BG_BTN};
-                    selection-color: {TEXT_BTN};
-                    border: 1px solid {BORDER};
-                }}
-                """)
-
-            layout.addWidget(type_label)
-            layout.addWidget(self.instrument_combo)
-            layout.addWidget(h_rule())
 
         row = QHBoxLayout()
         row.setSpacing(10)
@@ -253,7 +211,6 @@ class StatusPanel(Panel):
         self.instr_sub = ConnectionSubPanel(
             "Instrument Information",
             "Ensure USB Connection to Instrument",
-            show_instrument_selector=True,
             reconnect_cmd=self._on_reconnect_instrument,
         )
         layout.addWidget(self.instr_sub, stretch=1)
@@ -306,32 +263,32 @@ class ActionPanel(Panel):
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 18, 16, 18)
-        layout.setSpacing(0)
+        layout.setSpacing(8)
 
         button_defs = [
             ("Capture Blank", self._on_capture_blank),
             ("Load Blank from File", self._on_load_blank),
             ("Reset Blank", self._on_reset_blank),
             ("Save Blank to File", self._on_save_blank),
-            ("Continue to main session", self._on_continue),
-            ("Debugging mode", self._on_toggle_debug),
+            ("Continue to main session", self._on_continue)
         ]
 
-        layout.addStretch()
         for text, handler in button_defs:
             btn = StyledButton(text)
-            btn.setFixedHeight(34)
-            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
             if handler:
                 btn.clicked.connect(handler)
             layout.addWidget(btn)
-            layout.addStretch()
 
     def _on_capture_blank(self):
         if not self.app:
             return
+        from app.dialogs.blanksFolder import get_blanks_folder
+        from datetime import datetime
+        blanks_dir = get_blanks_folder(parent=self)
+        filename = str(blanks_dir / f"blank_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
         code, blank_path = (
-            self.app.controller.takeBlank()
+            self.app.controller.takeBlank(filename)
         )  # Blank is captured from takeBlank() return
         if code == 0:
             self.app.state.blank_file_path = blank_path
@@ -356,12 +313,8 @@ class ActionPanel(Panel):
             )
 
     def _on_load_blank(self):
-        filepath, _ = QFileDialog.getOpenFileName(
-            self,
-            "Load Blank Spectrum",
-            "",
-            "CSV Files (*.csv);;All Files (*)",  # Get filepath for blank
-        )
+        from app.dialogs.blanksFolder import open_blank_file
+        filepath = open_blank_file(parent=self)
         if not filepath:
             return
 
@@ -391,6 +344,9 @@ class ActionPanel(Panel):
             self.app.controller.InstController.clear_blank()
         self.app.state.blank_file_path = None
         self.plot_panel.clear_plot()
+        instrument_page = self.app.pages.get("session")
+        if instrument_page is not None:
+            instrument_page.data_viewer.clear_blank()
 
     def _on_save_blank(self):
         if not self.app:
@@ -406,8 +362,21 @@ class ActionPanel(Panel):
             QMessageBox.warning(self, "Save Blank", "No blank is currently loaded.")
 
     def _on_continue(self):
-        if self.main_window:
-            self.main_window.go_to_instrument_page()
+        if not self.main_window:
+            return
+        server_down = self.app and self.app.state.server_status != "OK"
+        if server_down:
+            reply = QMessageBox.question(
+                self,
+                "No Server Connection",
+                "The server is not connected. Proceed in offline mode?\n\n"
+                "In offline mode you can take samples without logging in.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+            self.app.state.offline_mode = True
+        self.main_window.go_to_instrument_page()
 
     def _on_toggle_debug(self):
         if not self.app:
@@ -444,7 +413,7 @@ class SetupPage(QWidget):
         top = QHBoxLayout()
         top.setSpacing(8)
         branding = BrandingPanel()
-        branding.setFixedWidth(260)
+        branding.setFixedWidth(270)
         self.status_panel = StatusPanel(app=self.app)
         top.addWidget(branding)
         top.addWidget(self.status_panel)
@@ -456,7 +425,7 @@ class SetupPage(QWidget):
         actions = ActionPanel(
             plot_panel=plot, app=self.app, main_window=self.main_window
         )
-        actions.setFixedWidth(260)
+        actions.setFixedWidth(270)
         bottom.addWidget(actions)
         bottom.addWidget(plot)
 

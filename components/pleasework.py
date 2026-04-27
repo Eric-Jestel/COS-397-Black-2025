@@ -15,7 +15,7 @@ class InstrumentControllerOpus:
         self.opusExePath = "C:\\Program Files\\Bruker\\OPUS_8.8.4\\opus.exe"  # change to actual path to opus software
         
         # start Opus Software
-        self.setup(launch_opus=True)
+        #self.setup(launch_opus=True)
 
         # needs to connect to opus
         self.opus = Opus()

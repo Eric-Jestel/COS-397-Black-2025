@@ -174,10 +174,16 @@ class SystemController:
         self._print_received("runLabMachine")
         # verify instrument connection
         self._debug("runLabMachine() invoked")
+
+        activeUser = self.ServController.user
+        if not activeUser:
+            self._print_executed("runLabMachine", (300, None))
+            return 300, None
+
         if self._instrument_ready():
             # sends instructions to machine to run test
             self._print_received("InstrumentController.take_sample")
-            targetFilename = datetime.now().strftime("%Y%m%d-%H%M%SZ") + ".csv"
+            targetFilename = activeUser + datetime.now().strftime("%Y%m%d-%H%M%SZ") + ".csv"
             csv_path = self.InstController.take_sample(targetFilename)
             self._print_executed("InstrumentController.take_sample", csv_path)
             self._debug(f"runLabMachine() sample received={bool(csv_path)}")
@@ -192,9 +198,13 @@ class SystemController:
                     self._debug(f"runLabMachine() send_all_data -> {sent}")
                     expected_name = None
                     if self.ServController.user and csv_path:
+                        csv_stem = Path(csv_path).stem
+                        if csv_stem.startswith(self.ServController.user):
+                            csv_key = csv_stem[len(self.ServController.user) :]
+                        else:
+                            csv_key = csv_stem
                         expected_name = (
-                            f"{self.ServController.user}_"
-                            f"{Path(csv_path).stem}_unsent.json"
+                            f"{self.ServController.user}_{csv_key}_unsent.json"
                         )
 
                     for fileSent in sent:
