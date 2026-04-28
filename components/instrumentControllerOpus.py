@@ -22,12 +22,14 @@ class InstrumentControllerOpus:
         self.debug = bool(debug)
         # Path to Opus software
         self.opusExePath = "C:\\Program Files\\Bruker\\OPUS_8.8.4\\opus.exe"  # change to actual path to opus software
+
+        #self.setup(launch_opus=True)
         
         # start Opus Software
         #self.setup(launch_opus=True)
 
         # needs to connect to opus
-        self.opus = Opus()
+        self.opus = None
 
         # Path to pre-existing blan file/s
         self.blankPath = None
@@ -132,6 +134,8 @@ class InstrumentControllerOpus:
                 self.opus_process = subprocess.Popen([self.opusExePath])  # starts OPUS Software
                 print("OPUS launched.")
                 result = True
+                print("Please log into OPUS.")
+                input("Press ENTER here *after* OPUS is open and you are fully logged in... ")
                 self._print_executed("setup", result)
                 return result
             except Exception as e:
@@ -145,7 +149,17 @@ class InstrumentControllerOpus:
         input("Press ENTER here *after* OPUS is open and you are fully logged in... ")
 
 
+    def _get_connected_opus(self):
+        opus = Opus()
+
+        if not opus.connected:
+            opus.connect()
+
+        _ = opus.get_version()
+        return opus
+
         # This function checks that the instrument is connected and checks the opus version
+    '''
     def ping(self) -> bool:
         """
         Lightweight connectivity check against the instrument bridge.
@@ -164,7 +178,26 @@ class InstrumentControllerOpus:
             print("OPUS ping failed:", e)
             self._print_executed("ping", False)
             return False
-    
+    '''
+    def ping(self) -> bool:
+        """
+        Lightweight connectivity check against OPUS.
+        """
+        self._print_received("ping")
+
+        try:
+            opus = self._get_connected_opus()
+            version = opus.get_version()
+            print("OPUS responded:", version)
+
+            self._print_executed("ping", True)
+            return True
+
+        except Exception as e:
+            print("OPUS ping failed:", e)
+            self._print_executed("ping", False)
+            return False
+
     '''
     def take_blank(self, filename):
         
@@ -200,28 +233,26 @@ class InstrumentControllerOpus:
             return False
     '''
 
-    def take_blank(self, filename):
-        """
-        Takes a blank measurement, saves the native OPUS file, converts it to CSV,
-        and stores the native blank path in self.blank_file for later set_blank() use.
-        """
+    """def take_blank(self, filename):
+        
+        #Takes a blank measurement, saves the native OPUS file, converts it to CSV,
+        #and stores the native blank path in self.blank_file for later set_blank() use.
+        
 
         self._print_received("take_blank", {"filename": filename})
 
         try:
-            if not self.opus.connected:
-                self.opus.connect()
+            opus = self._get_connected_opus()
 
             csv_path = Path(filename)
             csv_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Native OPUS blank file will live beside the CSV
             native_blank_path = csv_path.with_suffix(".0")
 
             print("Taking Blank...")
-            self.opus.measure_ref()
+            opus.measure_ref()
 
-            saved_path = Path(str(self.opus.save_ref()))
+            saved_path = Path(str(opus.save_ref()))
             print("Blank taken and saved to:", saved_path)
 
             # Move the native blank file to the location we want
@@ -259,8 +290,94 @@ class InstrumentControllerOpus:
         except Exception as e:
             print("Failed to take blank:", e)
             self._print_executed("take_blank", False)
-            return False
+            return False"""
 
+
+
+
+    def _copy_when_ready(self, source_path, target_path, attempts=20, delay=0.5):
+        source = Path(source_path)
+        target = Path(target_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+
+        last_error = None
+
+        for _ in range(attempts):
+            try:
+                shutil.copy2(str(source), str(target))
+                return True
+            except PermissionError as e:
+                last_error = e
+                time.sleep(delay)
+            except OSError as e:
+                last_error = e
+                time.sleep(delay)
+
+        if last_error is not None:
+            raise last_error
+
+        return False
+
+    def take_blank(self, filename):
+        """
+        Takes a blank measurement, saves the native OPUS file, converts it to CSV,
+        and stores the native blank path in self.blank_file for later set_blank() use.
+        """
+
+        self._print_received("take_blank", {"filename": filename})
+
+        try:
+            opus = self._get_connected_opus()
+
+            csv_path = Path(filename)
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+            native_blank_path = csv_path.with_suffix(".0")
+
+            print("Taking Blank...")
+            opus.measure_ref()
+
+            saved_path = Path(str(opus.save_ref()))
+            print("Blank taken and saved to:", saved_path)
+            
+            # need to unload the blank from OPUS software before we can change it
+            opus.unload_file(str(saved_path))
+
+            if saved_path != native_blank_path:
+                self._copy_when_ready(saved_path, native_blank_path)
+                print("Copied native blank to:", str(native_blank_path))
+            else:
+                native_blank_path = saved_path
+
+            created_csv = self.opus_to_csv(
+                opus_filename=str(native_blank_path),
+                csv_filename=str(csv_path),
+                wave_start=self.sampleSettings.get("hfw", 600),
+                wave_stop=self.sampleSettings.get("lfw", 500),
+                saturation=0.1,
+                bandwidth=2
+            )
+
+            if created_csv is None:
+                self._print_executed("take_blank", False)
+                return False
+
+            self.blank_file = str(created_csv)
+
+            self._print_executed(
+                "take_blank",
+                {
+                    "success": True,
+                    "blank_file": self.blank_file,
+                    "blank_csv": created_csv
+                }
+            )
+            return created_csv
+
+        except Exception as e:
+            print("Failed to take blank:", e)
+            self._print_executed("take_blank", False)
+            return False
 
     def set_blank(self, filename): # Hopefull this works,not sure (it shoudl in theory)
         
