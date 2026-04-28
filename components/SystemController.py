@@ -53,7 +53,7 @@ class SystemController:
             400: "No data",
             550: "No blank to set",
         }
-        self.offline = not self.ServController.ping()
+        self.offline = False  # not self.ServController.ping()
         self.offlineUsername = None
         print("[SystemController][EXECUTED] __init__ controllers initialized")
 
