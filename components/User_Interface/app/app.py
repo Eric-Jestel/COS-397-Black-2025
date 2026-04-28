@@ -16,6 +16,7 @@ class App:
     def __init__(self, PROJECT_ROOT):
         self.PROJECT_ROOT = PROJECT_ROOT
         self.qt_app = QApplication.instance() or QApplication(sys.argv)
+        self.qt_app.setStyle("Fusion")
         self.qt_app.setStyleSheet("""
             QMessageBox {
                 background-color: #F0F0F0;
