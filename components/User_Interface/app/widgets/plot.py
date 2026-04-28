@@ -113,6 +113,14 @@ class SpectrumPlotWidget(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.plot_widget)
 
+    def set_x_range(self, x_min: float, x_max: float):
+        """Update the visible x-axis range and pan/zoom limits."""
+        self._x_mid = (x_min + x_max) / 2
+        self.plot_widget.setXRange(x_min, x_max, padding=0)
+        self.plot_widget.setLimits(xMin=x_min, xMax=x_max)
+        if self._placeholder_visible:
+            self._placeholder.setPos(self._x_mid, self._y_mid)
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         path = QPainterPath()
@@ -171,6 +179,7 @@ class BlankPlot(SpectrumPlotWidget):
         super().__init__(
             title="",
             placeholder="No data loaded — use 'Load Blank from File' or 'Capture Blank'",
+            x_range=(190, 1100),
             parent=parent,
         )
         self._curve = None
@@ -233,6 +242,7 @@ class SamplePlot(SpectrumPlotWidget):
 
         # Legend appears automatically once curves are named
         self._legend = self.plot_widget.addLegend(offset=(10, 10))
+        self._legend.setFlag(self._legend.GraphicsItemFlag.ItemIsMovable, False)
 
     def _next_colour(self) -> str:
         c = COLOUR_CYCLE[self._colour_index % len(COLOUR_CYCLE)]

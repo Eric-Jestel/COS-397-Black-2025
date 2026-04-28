@@ -61,12 +61,12 @@ class WavelengthDialog(QDialog):
         root.addWidget(_h_rule())
 
         # Pull current values from instrumentParams if available
-        start_default, stop_default = 600, 500
+        start_default, stop_default = WAVE_MAX, WAVE_MIN
         if app:
             params = app.controller.InstController.instrumentParams
             try:
-                start_default = int(params.get("WavelengthStart", 600))
-                stop_default  = int(params.get("WavelengthStop",  500))
+                start_default = int(params.get("WavelengthStart", WAVE_MAX))
+                stop_default  = int(params.get("WavelengthStop",  WAVE_MIN))
             except (ValueError, TypeError):
                 pass
 
@@ -176,5 +176,8 @@ class WavelengthDialog(QDialog):
             self._app.controller.InstController.changeSettings(
                 waveStart=start, waveStop=end
             )
+            instrument_page = self._app.pages.get("session")
+            if instrument_page is not None:
+                instrument_page.data_viewer.set_x_range(end, start)
 
         self.accept()
