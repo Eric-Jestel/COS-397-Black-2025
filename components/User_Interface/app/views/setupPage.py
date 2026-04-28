@@ -284,33 +284,57 @@ class ActionPanel(Panel):
         if not self.app:
             return
         from app.dialogs.blanksFolder import get_blanks_folder
+        from app.dialogs.captureDialog import CaptureDialog, CaptureWorker
         from datetime import datetime
+
         blanks_dir = get_blanks_folder(parent=self)
         filename = str(blanks_dir / f"blank_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
-        code, blank_path = (
-            self.app.controller.takeBlank(filename)
-        )  # Blank is captured from takeBlank() return
-        if code == 0:
-            self.app.state.blank_file_path = blank_path
-            if blank_path and os.path.exists(blank_path):
-                QMessageBox.information(
-                    self, "Capture Blank", f"Blank captured:\n{blank_path}"
-                )
-                self.plot_panel.load_csv(
-                    blank_path
-                )  # Plot the csv returned from takeBlank()
+
+        self._blank_cancelled = False
+
+        dialog = CaptureDialog(
+            title="Capturing Blank",
+            message="Please wait while the blank is being captured...",
+            parent=self,
+        )
+        self._blank_worker = CaptureWorker(self.app.controller.takeBlank, filename)
+
+        def on_done(result):
+            if self._blank_cancelled:
+                return
+            dialog.done(0)
+            code, blank_path = result
+            if code == 0:
+                self.app.state.blank_file_path = blank_path
+                if blank_path and os.path.exists(blank_path):
+                    QMessageBox.information(
+                        self, "Capture Blank", f"Blank captured:\n{blank_path}"
+                    )
+                    self.plot_panel.load_csv(blank_path)
+                else:
+                    QMessageBox.information(
+                        self,
+                        "Capture Blank",
+                        "Blank command completed. No CSV file was returned by the instrument bridge.",
+                    )
             else:
-                QMessageBox.information(
+                QMessageBox.critical(
                     self,
                     "Capture Blank",
-                    "Blank command completed. No CSV file was returned by the instrument bridge.",
+                    self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
                 )
-        else:
-            QMessageBox.critical(
-                self,
-                "Capture Blank",
-                self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
-            )
+
+        def on_cancel():
+            self._blank_cancelled = True
+            self.app.state.blank_file_path = None
+            if hasattr(self.app.controller.InstController, "clear_blank"):
+                self.app.controller.InstController.clear_blank()
+            self.plot_panel.clear_plot()
+
+        self._blank_worker.finished.connect(on_done)
+        dialog.cancelled.connect(on_cancel)
+        self._blank_worker.start()
+        dialog.exec()
 
     def _on_load_blank(self):
         from app.dialogs.blanksFolder import open_blank_file

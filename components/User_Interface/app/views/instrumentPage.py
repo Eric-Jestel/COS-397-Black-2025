@@ -35,10 +35,11 @@ TEXT_BTN = "#3A3A3A"
 class Panel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet(f"""
             Panel {{
                 background-color: {BG};
-                border: 1px solid {BORDER};
+                border: none;
                 border-radius: 5px;
             }}
             """)
@@ -152,13 +153,13 @@ class LoginPanel(Panel):
         layout.addWidget(h_rule())
         layout.addSpacing(4)
 
-        lbl = QLabel("Enter Username")
-        lbl.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Normal, True))  # italic
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setStyleSheet(
+        self.input_label = QLabel("Enter Username")
+        self.input_label.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Normal, True))
+        self.input_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.input_label.setStyleSheet(
             f"color: {TEXT_MUTED}; background: transparent; border: none;"
         )
-        layout.addWidget(lbl)
+        layout.addWidget(self.input_label)
 
         self.username_input = QLineEdit()
         self.username_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -175,6 +176,16 @@ class LoginPanel(Panel):
         if app:
             self.username_input.setText(app.state.username)
         layout.addWidget(self.username_input)
+
+        self.logged_in_label = QLabel("")
+        self.logged_in_label.setFont(QFont("Helvetica Neue", 9))
+        self.logged_in_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.logged_in_label.setWordWrap(True)
+        self.logged_in_label.setStyleSheet(
+            f"color: {TEXT_MAIN}; background: transparent; border: none;"
+        )
+        self.logged_in_label.setVisible(False)
+        layout.addWidget(self.logged_in_label)
 
         layout.addSpacing(4)
 
@@ -201,19 +212,25 @@ class LoginPanel(Panel):
         self.reset_btn.setVisible(False)
         layout.addWidget(self.reset_btn)
 
-        # Restore button state if already logged in
+        # Restore logged-in state if already signed in
         if app and app.state.username:
             self._show_reset_state()
 
     def _show_login_state(self):
+        self.input_label.setVisible(True)
+        self.username_input.setVisible(True)
+        self.logged_in_label.setVisible(False)
         self.login_btn.setVisible(True)
         self.reset_btn.setVisible(False)
-        self.username_input.setReadOnly(False)
 
     def _show_reset_state(self):
+        username = self.username_input.text().strip()
+        self.logged_in_label.setText(f"Logged in as: {username}")
+        self.input_label.setVisible(False)
+        self.username_input.setVisible(False)
+        self.logged_in_label.setVisible(True)
         self.login_btn.setVisible(False)
         self.reset_btn.setVisible(True)
-        self.username_input.setReadOnly(True)
 
     def _on_login(self):
         if not self.app:
@@ -346,33 +363,45 @@ class ActionPanel(Panel):
     def _on_take_sample(self):
         if not self.app:
             return
-        from app.dialogs.captureDialog import CaptureDialog
-        from PyQt6.QtWidgets import QApplication
+        from app.dialogs.captureDialog import CaptureDialog, CaptureWorker
 
-        dialog = CaptureDialog(parent=self)
-        dialog.show()
-        QApplication.processEvents()
+        self._sample_cancelled = False
 
-        code, csv_path = self.app.controller.runLabMachine()
-
-        dialog.done(0)
-
-        if code == 0 and csv_path:
-            sample_name = Path(csv_path).name
-            self.app.state.sample_files.append(csv_path)
-            QMessageBox.information(
-                self, "Take Sample", f"Sample captured:\n{sample_name}"
-            )
-            # Plot the new sample on the instrument page data viewer
-            if self.main_window:
-                data_viewer = self.main_window.pages["session"].data_viewer
-                data_viewer.add_sample_csv(sample_name, csv_path)
-            return
-        QMessageBox.critical(
-            self,
-            "Take Sample",
-            self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+        dialog = CaptureDialog(
+            title="Capturing Sample",
+            message="Please wait while the sample is being captured...",
+            parent=self,
         )
+        self._sample_worker = CaptureWorker(self.app.controller.runLabMachine)
+
+        def on_done(result):
+            if self._sample_cancelled:
+                return
+            dialog.done(0)
+            code, csv_path = result
+            if code == 0 and csv_path:
+                sample_name = Path(csv_path).name
+                self.app.state.sample_files.append(csv_path)
+                QMessageBox.information(
+                    self, "Take Sample", f"Sample captured:\n{sample_name}"
+                )
+                if self.main_window:
+                    data_viewer = self.main_window.pages["session"].data_viewer
+                    data_viewer.add_sample_csv(sample_name, csv_path)
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Take Sample",
+                    self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+                )
+
+        def on_cancel():
+            self._sample_cancelled = True
+
+        self._sample_worker.finished.connect(on_done)
+        dialog.cancelled.connect(on_cancel)
+        self._sample_worker.start()
+        dialog.exec()
 
     def set_take_enabled(self, enabled: bool):
         if self.app and self.app.state.offline_mode:
@@ -421,7 +450,7 @@ class InstrumentPage(QWidget):
 
         left.addWidget(branding, stretch=1)
         left.addWidget(login)
-        left.addWidget(actions, stretch=4)
+        left.addWidget(actions, stretch=3)
 
         left_container = QWidget()
         left_container.setFixedWidth(270)
