@@ -35,11 +35,10 @@ TEXT_BTN = "#3A3A3A"
 class Panel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet(f"""
             Panel {{
                 background-color: {BG};
-                border: none;
+                border: 1px solid {BORDER};
                 border-radius: 5px;
             }}
             """)
@@ -389,6 +388,12 @@ class ActionPanel(Panel):
                     data_viewer = self.main_window.pages["session"].data_viewer
                     data_viewer.add_sample_csv(sample_name, csv_path)
             else:
+                if code == 110 and csv_path:
+                    sample_name = Path(csv_path).name
+                    if self.main_window:
+                        data_viewer = self.main_window.pages["session"].data_viewer
+                        data_viewer.add_sample_csv(sample_name, csv_path)
+
                 QMessageBox.critical(
                     self,
                     "Take Sample",
@@ -432,7 +437,7 @@ class InstrumentPage(QWidget):
         super().__init__(parent)
         self.app = app
         self.main_window = main_window
-        self.setStyleSheet(f"background-color: {BG};")
+        self.setStyleSheet("")
 
         root = QHBoxLayout(self)
         root.setContentsMargins(12, 12, 12, 12)
@@ -440,6 +445,7 @@ class InstrumentPage(QWidget):
 
         # Left column: Branding | Login | Actions (fixed 260px)
         left = QVBoxLayout()
+        left.setContentsMargins(0, 0, 0, 0)
         left.setSpacing(8)
 
         branding = BrandingPanel()
@@ -455,10 +461,12 @@ class InstrumentPage(QWidget):
         left_container = QWidget()
         left_container.setFixedWidth(270)
         left_container.setLayout(left)
+        left_container.setStyleSheet("background: transparent;")
         root.addWidget(left_container)
 
         # Right area: Instructions + Explanation on top, Data viewer below
         right = QVBoxLayout()
+        right.setContentsMargins(0, 0, 0, 0)
         right.setSpacing(8)
 
         instructions = InstructionsPanel()

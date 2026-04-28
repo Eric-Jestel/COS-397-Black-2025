@@ -7,8 +7,8 @@ class UIState:
     username: str = ""
     debug_mode: bool = False
 
-    instrument_connected: bool = True
-    server_status: str = "OK"
+    instrument_connected: bool = False
+    server_status: str = "Disconnected"
 
     blank_file_path: Optional[str] = None
     sample_files: List[str] = field(default_factory=list)

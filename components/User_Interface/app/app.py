@@ -24,12 +24,15 @@ class App:
 
         startup_code = self.controller.startUp()
         self.state.instrument_connected = startup_code != 100
-        self.state.server_status = "OK" if startup_code != 110 else "Disconnected"
-
+        self.state.server_status = "OK" if startup_code == 0 else "Disconnected"
+        
         # Main window
         self.window = QMainWindow()
         self.window.setWindowTitle(APP_TITLE)
         self.window.setMinimumSize(QSize(*WINDOW_MIN_SIZE))
+        self.window.showMaximized()
+
+
 
         # Stacked widget replaces tkinter's overlapping frames
         self.stack = QStackedWidget()
@@ -46,6 +49,19 @@ class App:
             self.pages[name] = page
 
         self.show("setup")
+
+        self.window.closeEvent = self.closeEvent
+
+    def closeEvent(self, event):
+        print("[App][RECEIVED] closeEvent")
+
+        if self.controller:
+            print("[App][TX] SystemController.stopProgram")
+            self.controller.stopProgram()
+
+        print("[App][EXECUTED] closeEvent -> accepted")
+        event.accept()
+
 
     def show(self, name: str):
         """Switch the visible page by name."""

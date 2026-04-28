@@ -13,7 +13,8 @@ import csv
 
 import pyqtgraph as pg
 from PyQt6.QtWidgets import QVBoxLayout, QFrame, QSizePolicy, QMessageBox
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QRectF
+from PyQt6.QtGui import QPainterPath, QRegion, QTransform
 
 # ── Palette (mirrors the rest of the UI) ─────────────────────────────────────
 BG = "#E4E4E4"
@@ -59,7 +60,7 @@ class SpectrumPlotWidget(QFrame):
         parent=None,
     ):
         super().__init__(parent)
-        self.setStyleSheet("border: none;")
+        self.setStyleSheet(f"background-color: {BG_INSET}; border: none; border-radius: 5px;")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
         pg.setConfigOptions(antialias=True, background=BG_INSET, foreground=TEXT_MAIN)
@@ -68,7 +69,7 @@ class SpectrumPlotWidget(QFrame):
         self.plot_widget.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.plot_widget.setStyleSheet("border: none; border-radius: 3px;")
+        self.plot_widget.setStyleSheet("border: none;")
 
         pi = self.plot_widget.getPlotItem()
         pi.showGrid(x=True, y=True, alpha=0.3)
@@ -76,7 +77,10 @@ class SpectrumPlotWidget(QFrame):
 
         self.plot_widget.setLabel("bottom", x_label, color=TEXT_MAIN)
         self.plot_widget.setLabel("left", y_label, color=TEXT_MAIN)
-        self.plot_widget.setTitle(title, color=TEXT_MAIN, size="11pt")
+        if title:
+            self.plot_widget.setTitle(title, color=TEXT_MAIN, size="11pt")
+        else:
+            pi.setTitle(None)
 
         self.plot_widget.setXRange(*x_range, padding=0)
         self.plot_widget.setYRange(*y_range, padding=0)
@@ -108,6 +112,20 @@ class SpectrumPlotWidget(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.plot_widget)
+
+    def set_x_range(self, x_min: float, x_max: float):
+        """Update the visible x-axis range and pan/zoom limits."""
+        self._x_mid = (x_min + x_max) / 2
+        self.plot_widget.setXRange(x_min, x_max, padding=0)
+        self.plot_widget.setLimits(xMin=x_min, xMax=x_max)
+        if self._placeholder_visible:
+            self._placeholder.setPos(self._x_mid, self._y_mid)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(self.rect()), 5.0, 5.0)
+        self.setMask(QRegion(path.toFillPolygon(QTransform()).toPolygon()))
 
     # ── internal helpers ──────────────────────────────────────────────────────
     def _hide_placeholder(self):
@@ -161,6 +179,7 @@ class BlankPlot(SpectrumPlotWidget):
         super().__init__(
             title="",
             placeholder="No data loaded — use 'Load Blank from File' or 'Capture Blank'",
+            x_range=(190, 1100),
             parent=parent,
         )
         self._curve = None
@@ -223,6 +242,7 @@ class SamplePlot(SpectrumPlotWidget):
 
         # Legend appears automatically once curves are named
         self._legend = self.plot_widget.addLegend(offset=(10, 10))
+        self._legend.setFlag(self._legend.GraphicsItemFlag.ItemIsMovable, False)
 
     def _next_colour(self) -> str:
         c = COLOUR_CYCLE[self._colour_index % len(COLOUR_CYCLE)]
