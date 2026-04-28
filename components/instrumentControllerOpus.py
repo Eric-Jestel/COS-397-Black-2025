@@ -52,6 +52,7 @@ class InstrumentControllerOpus:
     # this is a test!!!!
 
     def opus_to_csv(
+    self,
     opus_filename,
     csv_filename,
     wave_start,
@@ -164,7 +165,7 @@ class InstrumentControllerOpus:
             self._print_executed("ping", False)
             return False
     
-
+    '''
     def take_blank(self, filename):
         
         """
@@ -196,6 +197,68 @@ class InstrumentControllerOpus:
 
         except Exception as e:
             print("Failed to take blank:", e)
+            return False
+    '''
+
+    def take_blank(self, filename):
+        """
+        Takes a blank measurement, saves the native OPUS file, converts it to CSV,
+        and stores the native blank path in self.blank_file for later set_blank() use.
+        """
+
+        self._print_received("take_blank", {"filename": filename})
+
+        try:
+            if not self.opus.connected:
+                self.opus.connect()
+
+            csv_path = Path(filename)
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Native OPUS blank file will live beside the CSV
+            native_blank_path = csv_path.with_suffix(".0")
+
+            print("Taking Blank...")
+            self.opus.measure_ref()
+
+            saved_path = Path(str(self.opus.save_ref()))
+            print("Blank taken and saved to:", saved_path)
+
+            # Move the native blank file to the location we want
+            if saved_path != native_blank_path:
+                shutil.move(str(saved_path), str(native_blank_path))
+                print("Moved native blank to:", str(native_blank_path))
+
+            # Convert native blank to CSV
+            created_csv = self.opus_to_csv(
+                opus_filename=str(native_blank_path),
+                csv_filename=str(csv_path),
+                wave_start=self.sampleSettings.get("hfw", 600),
+                wave_stop=self.sampleSettings.get("lfw", 500),
+                saturation=0.1,
+                bandwidth=2
+            )
+
+            if created_csv is None:
+                self._print_executed("take_blank", False)
+                return False
+
+            # Store the native blank path, because set_blank() needs a real OPUS file
+            self.blank_file = str(native_blank_path)
+
+            self._print_executed(
+                "take_blank",
+                {
+                    "success": True,
+                    "blank_file": self.blank_file,
+                    "blank_csv": created_csv
+                }
+            )
+            return True
+
+        except Exception as e:
+            print("Failed to take blank:", e)
+            self._print_executed("take_blank", False)
             return False
 
 
@@ -252,9 +315,9 @@ class InstrumentControllerOpus:
 
 
 
-
+    """
     def take_sample(self, filename):
-        """
+        
         Sends a command to the instrument to take a sample and converts the sample to a Sample object
 
         Args:
@@ -262,11 +325,11 @@ class InstrumentControllerOpus:
 
         Returns:
             Sample: the sample that the instrument collected
-        """
+        
         print("Taking Sample...")
         sample_path = self.opus.measure_sample(unload=True, HFQ=1000, LFQ=2000, NSS=2) #, **self.sampleSettings)
         print("Saved sample to:", str(sample_path))
-        """"""
+        
         if save_path is not None:
             save_path = Path(save_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -274,9 +337,62 @@ class InstrumentControllerOpus:
             print("Moved sample to:", str(save_path))
 
         return sample_path
+    """
 
 
+    def take_sample(self, filename):
+        """
+        Takes a sample, moves the native OPUS output to the right place,
+        converts it to CSV, and returns the CSV path.
+        """
+        self._print_received("take_sample", {"filename": filename})
 
+        try:
+            if not self.opus.connected:
+                self.opus.connect()
+
+            print("Taking Sample...")
+
+            # Native OPUS output from the instrument
+            sample_path = Path(str(
+                self.opus.measure_sample(
+                    unload=True,
+                    **self.sampleSettings
+                )
+            ))
+            print("Saved native sample to:", str(sample_path))
+
+            # The filename passed in from SystemController is the CSV name
+            csv_path = Path(filename)
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Keep the native OPUS file beside the CSV, but with .0 extension
+            native_target = csv_path.with_suffix(".0")
+
+            if sample_path != native_target:
+                shutil.move(str(sample_path), str(native_target))
+                print("Moved native sample to:", str(native_target))
+
+            created_csv = self.opus_to_csv(
+                opus_filename=str(native_target),
+                csv_filename=str(csv_path),
+                wave_start=self.sampleSettings.get("hfw", 600),
+                wave_stop=self.sampleSettings.get("lfw", 500),
+                saturation=0.1,
+                bandwidth=2
+            )
+
+            if created_csv is None:
+                self._print_executed("take_sample", None)
+                return None
+
+            self._print_executed("take_sample", created_csv)
+            return created_csv
+
+        except Exception as e:
+            print("Failed to take sample:", e)
+            self._print_executed("take_sample", None)
+            return None
 
 
     def changeSettings(
@@ -323,6 +439,8 @@ class InstrumentControllerOpus:
 
 #test = InstrumentControllerOpus()
 #test.take_sample("C:\\Users\\Public\\Documents\\Bruker\\Opus_8.8.4\\Data\\Sample13.0")
+
+"""
 ofile = OPUSFile("C:\\Users\\Public\\Documents\\Bruker\\Opus_8.8.4\\Data\\Sample12.0")
 iter = ofile.iter_data()
 
@@ -334,6 +452,6 @@ for value in iter:
     outputData = [[float(x), float(y)] for x, y in zip(value.x, value.y)]
 
     print(outputData)
-
+"""
 
 
