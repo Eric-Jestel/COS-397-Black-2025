@@ -265,6 +265,19 @@ class StatusPanel(Panel):
                 "Connected" if serv_ok else "Disconnected", ok=serv_ok
             )
 
+    def refresh_status(self):
+        """Re-read connection state from app.state and update both widgets."""
+        if not self.app:
+            return
+        instr_ok = self.app.state.instrument_connected
+        self.instr_sub.set_status(
+            "Connected" if instr_ok else "Disconnected", ok=instr_ok
+        )
+        serv_ok = self.app.state.server_status == "OK"
+        self.server_sub.set_status(
+            "Connected" if serv_ok else "Disconnected", ok=serv_ok
+        )
+
     def _on_reconnect_instrument(self):
         if not self.app:
             return
@@ -489,3 +502,7 @@ class SetupPage(QWidget):
 
         root.addLayout(top, stretch=1)
         root.addLayout(bottom, stretch=3)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.status_panel.refresh_status()
