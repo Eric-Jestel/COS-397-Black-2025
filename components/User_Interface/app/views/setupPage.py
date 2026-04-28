@@ -213,7 +213,7 @@ class ConnectionSubPanel(QWidget):
                 QPushButton:disabled { background-color: #4CAF50; color: #FFFFFF; }
             """)
         else:
-            self.status_btn.setText("Reset")
+            self.status_btn.setText("Reconnect")
             self.status_btn.setEnabled(True)
             self.status_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             self.status_btn.setStyleSheet("""
