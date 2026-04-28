@@ -362,33 +362,45 @@ class ActionPanel(Panel):
     def _on_take_sample(self):
         if not self.app:
             return
-        from app.dialogs.captureDialog import CaptureDialog
-        from PyQt6.QtWidgets import QApplication
+        from app.dialogs.captureDialog import CaptureDialog, CaptureWorker
 
-        dialog = CaptureDialog(parent=self)
-        dialog.show()
-        QApplication.processEvents()
+        self._sample_cancelled = False
 
-        code, csv_path = self.app.controller.runLabMachine()
-
-        dialog.done(0)
-
-        if code == 0 and csv_path:
-            sample_name = Path(csv_path).name
-            self.app.state.sample_files.append(csv_path)
-            QMessageBox.information(
-                self, "Take Sample", f"Sample captured:\n{sample_name}"
-            )
-            # Plot the new sample on the instrument page data viewer
-            if self.main_window:
-                data_viewer = self.main_window.pages["session"].data_viewer
-                data_viewer.add_sample_csv(sample_name, csv_path)
-            return
-        QMessageBox.critical(
-            self,
-            "Take Sample",
-            self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+        dialog = CaptureDialog(
+            title="Capturing Sample",
+            message="Please wait while the sample is being captured...",
+            parent=self,
         )
+        self._sample_worker = CaptureWorker(self.app.controller.runLabMachine)
+
+        def on_done(result):
+            if self._sample_cancelled:
+                return
+            dialog.done(0)
+            code, csv_path = result
+            if code == 0 and csv_path:
+                sample_name = Path(csv_path).name
+                self.app.state.sample_files.append(csv_path)
+                QMessageBox.information(
+                    self, "Take Sample", f"Sample captured:\n{sample_name}"
+                )
+                if self.main_window:
+                    data_viewer = self.main_window.pages["session"].data_viewer
+                    data_viewer.add_sample_csv(sample_name, csv_path)
+            else:
+                QMessageBox.critical(
+                    self,
+                    "Take Sample",
+                    self.app.controller.ErrorDictionary.get(code, f"Error code: {code}"),
+                )
+
+        def on_cancel():
+            self._sample_cancelled = True
+
+        self._sample_worker.finished.connect(on_done)
+        dialog.cancelled.connect(on_cancel)
+        self._sample_worker.start()
+        dialog.exec()
 
     def set_take_enabled(self, enabled: bool):
         if self.app and self.app.state.offline_mode:
