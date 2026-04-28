@@ -495,11 +495,4 @@ class InstrumentPage(QWidget):
         self.data_viewer.clear_samples()
 
     def showEvent(self, event):
-        """
-        Auto-load the blank into the plot whenever this page becomes visible.
-        This ensures the reference curve is always present even if the user
-        captures or loads a blank after first navigating here.
-        """
         super().showEvent(event)
-        if self.app and self.app.state.blank_file_path:
-            self.data_viewer.load_blank(self.app.state.blank_file_path)
