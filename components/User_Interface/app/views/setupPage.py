@@ -140,6 +140,7 @@ class ConnectionSubPanel(QWidget):
         parent=None,
     ):
         super().__init__(parent)
+        self._reconnect_cmd = reconnect_cmd
         self.setStyleSheet("background: transparent;")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -155,11 +156,6 @@ class ConnectionSubPanel(QWidget):
         row = QHBoxLayout()
         row.setSpacing(10)
 
-        # Status label that can be updated
-        self.status_box = InsetBox("Connection status")
-        self.status_box.setFixedWidth(140)
-        self.status_box.setFixedHeight(38)
-
         info_box = InsetBox(info_text)
         info_box.setMinimumHeight(68)
         info_box.setSizePolicy(
@@ -167,35 +163,64 @@ class ConnectionSubPanel(QWidget):
         )
 
         right = QVBoxLayout()
-        right.setSpacing(6)
-        right.addWidget(self.status_box)
+        right.setSpacing(4)
 
-        reconnect_btn = StyledButton("Connect")
-        reconnect_btn.setFixedWidth(140)
-        if reconnect_cmd:
-            reconnect_btn.clicked.connect(reconnect_cmd)
-        right.addWidget(reconnect_btn)
+        status_lbl = QLabel("Connection status:")
+        status_lbl.setFont(QFont("Helvetica Neue", 9))
+        status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        status_lbl.setStyleSheet(
+            f"color: {TEXT_MUTED}; background: transparent; border: none;"
+        )
+
+        self.status_btn = QPushButton("Checking...")
+        self.status_btn.setFixedWidth(140)
+        self.status_btn.setFixedHeight(38)
+        self.status_btn.setFont(QFont("Helvetica Neue", 9))
+        self.status_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self.status_btn.clicked.connect(self._on_status_clicked)
+        self._apply_neutral_style()
+
+        right.addStretch()
+        right.addWidget(status_lbl)
+        right.addWidget(self.status_btn)
         right.addStretch()
 
         row.addWidget(info_box)
         row.addLayout(right)
         layout.addLayout(row)
 
-    def set_status(self, text: str, ok: bool = True):
-        """Update the connection status label text and colour."""
-        # Clear old label and set a new one
-        layout = self.status_box.layout()
-        for i in reversed(range(layout.count())):
-            w = layout.itemAt(i).widget()
-            if w:
-                w.deleteLater()
+    def _on_status_clicked(self):
+        if self._reconnect_cmd:
+            self._reconnect_cmd()
 
-        color = TEXT_MAIN if ok else "#B04040"
-        lbl = QLabel(text)
-        lbl.setFont(QFont("Helvetica Neue", 9))
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setStyleSheet(f"color: {color}; background: transparent; border: none;")
-        layout.addWidget(lbl)
+    def _apply_neutral_style(self):
+        self.status_btn.setEnabled(False)
+        self.status_btn.setStyleSheet("""
+            QPushButton          { background-color: #C8C8C8; color: #484848;
+                                   border: none; border-radius: 4px; padding: 5px 16px; }
+            QPushButton:disabled { background-color: #C8C8C8; color: #484848; }
+        """)
+
+    def set_status(self, text: str, ok: bool = True):
+        if ok:
+            self.status_btn.setText("Connected")
+            self.status_btn.setEnabled(False)
+            self.status_btn.setCursor(Qt.CursorShape.ArrowCursor)
+            self.status_btn.setStyleSheet("""
+                QPushButton          { background-color: #4CAF50; color: #FFFFFF;
+                                       border: none; border-radius: 4px; padding: 5px 16px; }
+                QPushButton:disabled { background-color: #4CAF50; color: #FFFFFF; }
+            """)
+        else:
+            self.status_btn.setText("Reset")
+            self.status_btn.setEnabled(True)
+            self.status_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.status_btn.setStyleSheet("""
+                QPushButton         { background-color: #C04040; color: #FFFFFF;
+                                      border: none; border-radius: 4px; padding: 5px 16px; }
+                QPushButton:hover   { background-color: #B03030; }
+                QPushButton:pressed { background-color: #A02020; }
+            """)
 
 
 # ── Panel 2 : Status ──────────────────────────────────────────────────────────
@@ -229,6 +254,16 @@ class StatusPanel(Panel):
             reconnect_cmd=self._on_reconnect_server,
         )
         layout.addWidget(self.server_sub, stretch=1)
+
+        if app:
+            instr_ok = app.state.instrument_connected
+            self.instr_sub.set_status(
+                "Connected" if instr_ok else "Disconnected", ok=instr_ok
+            )
+            serv_ok = app.state.server_status == "OK"
+            self.server_sub.set_status(
+                "Connected" if serv_ok else "Disconnected", ok=serv_ok
+            )
 
     def _on_reconnect_instrument(self):
         if not self.app:
