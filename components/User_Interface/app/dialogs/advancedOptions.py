@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QGroupBox, QPushButton
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
@@ -57,38 +57,6 @@ class AdvancedOptionsDialog(QDialog):
             "color: #CC0000; background: transparent; border: none;"
         )
         root.addWidget(subtitle)
-
-        # Blank options group
-        blank_group = QGroupBox("Blank options")
-        blank_group.setFont(QFont("Helvetica Neue", 9))
-        blank_group.setStyleSheet(f"""
-            QGroupBox {{
-                color: {TEXT_MAIN};
-                border: 1px solid {BORDER};
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 10px;
-            }}
-            """)
-
-        blank_layout = QVBoxLayout(blank_group)
-        blank_layout.setSpacing(6)
-
-        for label, handler in [
-            ("Capture Blank", None),
-            ("Load Blank from File", None),
-            ("Reset Blank", None),
-        ]:
-            btn = StyledButton(label)
-            if handler:
-                btn.clicked.connect(handler)
-            blank_layout.addWidget(btn)
-
-        root.addWidget(blank_group)
 
         # Back button
         back_btn = StyledButton("Go back to setup page")
