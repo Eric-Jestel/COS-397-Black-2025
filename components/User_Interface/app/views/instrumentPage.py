@@ -35,10 +35,11 @@ TEXT_BTN = "#3A3A3A"
 class Panel(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet(f"""
             Panel {{
                 background-color: {BG};
-                border: 1px solid {BORDER};
+                border: none;
                 border-radius: 5px;
             }}
             """)
