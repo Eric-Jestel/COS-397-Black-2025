@@ -152,13 +152,13 @@ class LoginPanel(Panel):
         layout.addWidget(h_rule())
         layout.addSpacing(4)
 
-        lbl = QLabel("Enter Username")
-        lbl.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Normal, True))  # italic
-        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        lbl.setStyleSheet(
+        self.input_label = QLabel("Enter Username")
+        self.input_label.setFont(QFont("Helvetica Neue", 9, QFont.Weight.Normal, True))
+        self.input_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.input_label.setStyleSheet(
             f"color: {TEXT_MUTED}; background: transparent; border: none;"
         )
-        layout.addWidget(lbl)
+        layout.addWidget(self.input_label)
 
         self.username_input = QLineEdit()
         self.username_input.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -175,6 +175,16 @@ class LoginPanel(Panel):
         if app:
             self.username_input.setText(app.state.username)
         layout.addWidget(self.username_input)
+
+        self.logged_in_label = QLabel("")
+        self.logged_in_label.setFont(QFont("Helvetica Neue", 9))
+        self.logged_in_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.logged_in_label.setWordWrap(True)
+        self.logged_in_label.setStyleSheet(
+            f"color: {TEXT_MAIN}; background: transparent; border: none;"
+        )
+        self.logged_in_label.setVisible(False)
+        layout.addWidget(self.logged_in_label)
 
         layout.addSpacing(4)
 
@@ -201,19 +211,25 @@ class LoginPanel(Panel):
         self.reset_btn.setVisible(False)
         layout.addWidget(self.reset_btn)
 
-        # Restore button state if already logged in
+        # Restore logged-in state if already signed in
         if app and app.state.username:
             self._show_reset_state()
 
     def _show_login_state(self):
+        self.input_label.setVisible(True)
+        self.username_input.setVisible(True)
+        self.logged_in_label.setVisible(False)
         self.login_btn.setVisible(True)
         self.reset_btn.setVisible(False)
-        self.username_input.setReadOnly(False)
 
     def _show_reset_state(self):
+        username = self.username_input.text().strip()
+        self.logged_in_label.setText(f"Logged in as: {username}")
+        self.input_label.setVisible(False)
+        self.username_input.setVisible(False)
+        self.logged_in_label.setVisible(True)
         self.login_btn.setVisible(False)
         self.reset_btn.setVisible(True)
-        self.username_input.setReadOnly(True)
 
     def _on_login(self):
         if not self.app:
