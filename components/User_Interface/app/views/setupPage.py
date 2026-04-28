@@ -19,6 +19,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from app.widgets.plot import BlankPlot
+from app.dialogs.wavelengthDialog import WavelengthDialog
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 BG = "#E4E4E4"
@@ -304,7 +305,7 @@ class ActionPanel(Panel):
             ("Capture Blank", self._on_capture_blank),
             ("Load Blank from File", self._on_load_blank),
             ("Reset Blank", self._on_reset_blank),
-            ("Save Blank to File", self._on_save_blank),
+            ("Set Wavelength", self._on_set_wavelength),
             ("Continue to main session", self._on_continue)
         ]
 
@@ -407,18 +408,9 @@ class ActionPanel(Panel):
         if instrument_page is not None:
             instrument_page.data_viewer.clear_blank()
 
-    def _on_save_blank(self):
-        if not self.app:
-            return
-        if self.app.state.blank_file_path:
-            QMessageBox.information(
-                self,
-                "Save Blank",
-                "Blank is already stored by the instrument bridge at:\n"
-                f"{self.app.state.blank_file_path}",
-            )
-        else:
-            QMessageBox.warning(self, "Save Blank", "No blank is currently loaded.")
+    def _on_set_wavelength(self):
+        dialog = WavelengthDialog(app=self.app, parent=self)
+        dialog.exec()
 
     def _on_continue(self):
         if not self.main_window:
