@@ -427,10 +427,12 @@ class InstrumentController:
             result = self._is_success(reply)
             self._print_executed("setup", result)
 
+            self._clear_mailbox()
             return result
         except OSError as exc:
             self._debug(f"setup() registry error: {exc}")
             self._print_executed("setup", False)
+            self._clear_mailbox()
             return False
 
     def ping(self) -> bool:
@@ -444,6 +446,7 @@ class InstrumentController:
         result = self._is_success(reply)
 
         self._print_executed("ping", result)
+        self._clear_mailbox()
         return result
 
     def take_blank(self, filename):
@@ -470,6 +473,7 @@ class InstrumentController:
             self._debug(f"take_blank() failed reply={reply}")
             self._print_executed("take_blank", {"success": False, "reply": reply})
 
+            self._clear_mailbox()
             return False
 
         blank = self._get_result_path()
@@ -480,6 +484,7 @@ class InstrumentController:
 
         self._read_blank(blank)
 
+        self._clear_mailbox()
         return blank
 
     def set_blank(self, filename):
@@ -545,6 +550,7 @@ class InstrumentController:
         sample = self._get_result_path()
         self._compare_to_blank(sample)
 
+        self._clear_mailbox()
         return sample
 
     def changeSettings(self, waveStart="", waveStop="", saturation="", bandwidth=""):
@@ -563,8 +569,10 @@ class InstrumentController:
         )
 
         reply = self._send_and_wait("SETUP", self.instrumentParams)
+        result = self._is_success(reply)
 
-        return self._is_success(reply)
+        self._clear_mailbox()
+        return result
 
     def getSettings(self):
         """
@@ -580,19 +588,22 @@ class InstrumentController:
         params = {}
         reply = self._send_and_wait("RESET", params)
         result = self._is_success(reply)
+        self._clear_mailbox()
         return result
 
     def resetSettings(self):
         self.instrumentParams = {
-            "waveStart": 600,
-            "waveStop": 500,
+            "waveStart": 900,
+            "waveStop": 300,
             "saturation": 0.1,
             "bandwidth": 2,
         }
         params = self.instrumentParams
         reply = self._send_and_wait("SETUP", params)
+        result = self._is_success(reply)
 
-        return self._is_success(reply)
+        self._clear_mailbox()
+        return result
 
     def shutdown(self):
         """
